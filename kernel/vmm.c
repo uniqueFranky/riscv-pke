@@ -160,7 +160,7 @@ void *user_va_to_pa(pagetable_t page_dir, void *va) {
   // Also, it is possible that "va" is not mapped at all. in such case, we can find
   // invalid PTE, and should return NULL.
   pte_t *pte = page_walk(page_dir, (uint64)va, 0);
-  if(NULL == pte) {
+  if(NULL == pte || (*pte & PTE_V) == 0) {
     return NULL;
   }
 
