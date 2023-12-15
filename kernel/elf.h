@@ -37,6 +37,30 @@ typedef struct elf_prog_header_t {
   uint64 align;  /* Segment alignment */
 } elf_prog_header;
 
+// Section header.
+typedef struct elf_section_header_t {
+  uint32 sh_name;      /* Section name (string tbl index) */
+  uint32 sh_type;      /* Section type */
+  uint64 sh_flags;     /* Section flags */
+  uint64 sh_addr;      /* Section virtual addr at execution */
+  uint64 sh_offset;    /* Section file offset */
+  uint64 sh_size;      /* Section size in bytes */
+  uint32 sh_link;      /* Link to another section */
+  uint32 sh_info;      /* Additional section information */
+  uint64 sh_addralign; /* Section alignment */
+  uint64 sh_entsize;   /* Entry size if section holds table */
+} elf_section_header;
+
+typedef struct elf_sym_t {
+  uint32 st_name;  /* Symbol name (string tbl index) */
+  uint8  st_info;  /* Symbol type and binding */
+  uint8  st_other; /* Symbol visibility */
+  uint16 st_shndx; /* Section index */
+  uint64 st_value; /* Symbol value */
+  uint64 st_size;  /* Symbol size */
+} elf_sym;
+
+
 #define ELF_MAGIC 0x464C457FU  // "\x7FELF" in little endian
 #define ELF_PROG_LOAD 1
 
@@ -57,6 +81,16 @@ typedef struct elf_ctx_t {
 
 elf_status elf_init(elf_ctx *ctx, void *info);
 elf_status elf_load(elf_ctx *ctx);
+
+elf_ctx *get_elf();
+
+elf_section_header read_elf_section_header(elf_ctx *ctx, int idx);
+
+elf_section_header read_elf_section_header_with_name(elf_ctx *ctx, const char *name);
+
+void read_elf_into_buffer(elf_ctx *ctx, void *dst, int offset, int size);
+
+const char *get_symbol_name(elf_ctx *ctx, uint64 addr);
 
 void load_bincode_from_host_elf(process *p);
 

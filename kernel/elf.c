@@ -13,6 +13,8 @@ typedef struct elf_info_t {
   process *p;
 } elf_info;
 
+elf_ctx global_elf_ctx;
+
 //
 // the implementation of allocater. allocates memory space for later segment loading
 //
@@ -133,8 +135,80 @@ void load_bincode_from_host_elf(process *p) {
   // entry (virtual, also physical in lab1_x) address
   p->trapframe->epc = elfloader.ehdr.entry;
 
+  global_elf_ctx = elfloader;
+
   // close the host spike file
   spike_file_close( info.f );
 
   sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
+}
+
+elf_ctx *get_elf() {
+  return &global_elf_ctx;
+}
+
+elf_section_header read_elf_section_header(elf_ctx *ctx, int idx) {
+  elf_section_header sh;
+  elf_fpread(ctx, &sh, sizeof(elf_section_header), ctx->ehdr.shoff + sizeof(elf_section_header) * idx);
+  return sh;
+}
+
+elf_section_header read_elf_section_header_with_name(elf_ctx *ctx, const char *name) {
+
+  static int inited = 0;
+  static elf_section_header shstrtab;
+  static char buf[1000];
+
+  if(!inited) {
+    shstrtab = read_elf_section_header(ctx, ctx->ehdr.shstrndx);
+    read_elf_into_buffer(ctx, buf, shstrtab.sh_offset, shstrtab.sh_size);
+    inited = 1;
+  }
+
+  elf_section_header header;
+  for(int i = 0; i < ctx->ehdr.shnum; i++) {
+    header = read_elf_section_header(ctx, i);
+    if(0 == strcmp(buf + header.sh_name, name)) {
+      return header;
+    }
+  }
+  panic("no corresponding section name");
+}
+
+void read_elf_into_buffer(elf_ctx *ctx, void *dst, int offset, int size) {
+  elf_fpread(ctx, dst, size, offset);
+}
+
+int symcmp(const void *a, const void *b) {
+  const elf_sym *sym1 = a;
+  const elf_sym *sym2 = b;
+  return sym1->st_value - sym2->st_value;
+}
+
+const char *get_symbol_name(elf_ctx *ctx, uint64 addr) {
+  static int inited = 0;
+  static elf_section_header symtab;
+  static elf_section_header strtab;
+  static elf_sym symbols[100];
+  static char strs[1000];
+  static int symnum = 0;
+  if(!inited) {
+    symtab = read_elf_section_header_with_name(ctx, ".symtab");
+    strtab = read_elf_section_header_with_name(ctx, ".strtab");
+    int now = 0;
+    while(now < symtab.sh_size) {
+      read_elf_into_buffer(ctx, symbols + symnum, symtab.sh_offset + symnum * sizeof(elf_sym), sizeof(elf_sym));
+      symnum++;
+      now += sizeof(elf_sym);
+    }
+    read_elf_into_buffer(ctx, strs, strtab.sh_offset, strtab.sh_size);
+    inited = 1;
+  }
+  
+  for(int i = 0; i < symnum; i++) {
+    if(addr >= symbols[i].st_value && addr < symbols[i].st_value + symbols[i].st_size) {
+      return strs + symbols[i].st_name;
+    }
+  }
+  panic("no such symbol");
 }
