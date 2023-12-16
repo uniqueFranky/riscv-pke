@@ -3,6 +3,10 @@
 
 #include "riscv.h"
 
+// the maximium size of stack which a process can apply for
+// added @lab2_challenge_1
+#define USER_MAX_STACK_PAGE_NUM 20
+
 typedef struct trapframe_t {
   // space to store context (all common registers)
   /* offset:0   */ riscv_regs regs;
