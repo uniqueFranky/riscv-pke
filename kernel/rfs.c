@@ -17,6 +17,7 @@
 #include "spike_interface/spike_utils.h"
 #include "util/string.h"
 #include "vfs.h"
+#include <string.h>
 
 /**** vinode inteface ****/
 const struct vinode_ops rfs_i_ops = {
@@ -494,11 +495,14 @@ struct vinode *rfs_create(struct vinode *parent, struct dentry *sub_dentry) {
   // nlinks, i.e., the number of links.
   // blocks, i.e., its block count.
   // Note: DO NOT DELETE CODE BELOW PANIC.
-  panic("You need to implement the code of populating a disk inode in lab4_1.\n" );
 
   // DO NOT REMOVE ANY CODE BELOW.
   // allocate a free block for the file
   free_dinode->addrs[0] = rfs_alloc_block(parent->sb);
+  free_dinode->blocks = 1;
+  free_dinode->nlinks = 1;
+  free_dinode->size = 0;
+  free_dinode->type = R_FILE;
 
   // **  write the disk inode of file being created to disk
   rfs_write_dinode(rdev, free_dinode, free_inum);
@@ -787,7 +791,8 @@ int rfs_readdir(struct vinode *dir_vinode, struct dir *dir, int *offset) {
   // the method of returning is to popular proper members of "dir", more specifically,
   // dir->name and dir->inum.
   // note: DO NOT DELETE CODE BELOW PANIC.
-  panic("You need to implement the code for reading a directory entry of rfs in lab4_2.\n" );
+  strcpy(dir->name, p_direntry->name);
+  dir->inum = p_direntry->inum;
 
   // DO NOT DELETE CODE BELOW.
   (*offset)++;
