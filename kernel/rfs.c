@@ -17,6 +17,7 @@
 #include "spike_interface/spike_utils.h"
 #include "util/string.h"
 #include "vfs.h"
+#include <string.h>
 
 /**** vinode inteface ****/
 const struct vinode_ops rfs_i_ops = {
@@ -649,7 +650,8 @@ int rfs_readdir(struct vinode *dir_vinode, struct dir *dir, int *offset) {
   // the method of returning is to popular proper members of "dir", more specifically,
   // dir->name and dir->inum.
   // note: DO NOT DELETE CODE BELOW PANIC.
-  panic("You need to implement the code for reading a directory entry of rfs in lab4_2.\n" );
+  strcpy(dir->name, p_direntry->name);
+  dir->inum = p_direntry->inum;
 
   // DO NOT DELETE CODE BELOW.
   (*offset)++;
