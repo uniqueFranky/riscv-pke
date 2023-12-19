@@ -237,7 +237,7 @@ int do_rcwd(char *dst) {
     return 0;
   }
   int offset = 0;
-  for(int i = num - 1; i >= 0; i--) {
+  for(int i = num_name - 1; i >= 0; i--) {
     dst[offset++] = '/';
     strcpy(dst + offset, dir_names[i]);
     offset += strlen(dir_names[i]);
