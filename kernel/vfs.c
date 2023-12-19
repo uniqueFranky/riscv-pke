@@ -9,6 +9,8 @@
 #include "util/string.h"
 #include "util/types.h"
 #include "util/hash_table.h"
+#include "process.h"
+#include <string.h>
 
 struct dentry *vfs_root_dentry;               // system root direntry
 struct super_block *vfs_sb_list[MAX_MOUNTS];  // system superblock list
@@ -102,6 +104,32 @@ struct super_block *vfs_mount(const char *dev_name, int mnt_type) {
   return sb;
 }
 
+struct dentry *parse_final_dentry(const char *path, struct dentry **parent, char *missing_name) {
+  char path_to_split[MAX_PATH_LEN];
+  strcpy(path_to_split, path);
+  struct dentry *now = current->pfiles->cwd;
+  if(path[0] == '/') {
+    now = vfs_root_dentry;
+  }
+  struct dentry *prev = NULL;
+  char *token = strtok(path_to_split, "/");
+  while(NULL != token) {
+    if(0 == strcmp("..", token)) {
+      if(now != vfs_root_dentry) { // at most go to root
+        now = now->parent;
+      }
+    } else if(0 == strcmp(".", token)) {
+      ; // do nothing
+    } else { // found the parent dir
+      break;
+    }
+    token = strtok(NULL, "/");
+  }
+  *parent = now;
+  now = lookup_final_dentry(path, parent, missing_name);
+  return now;
+}
+
 //
 // open a file located at "path" with permission of "flags".
 // if the file does not exist, and O_CREAT bit is set in "flags", the file will
@@ -113,7 +141,7 @@ struct file *vfs_open(const char *path, int flags) {
   char miss_name[MAX_PATH_LEN];
 
   // path lookup.
-  struct dentry *file_dentry = lookup_final_dentry(path, &parent, miss_name);
+  struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
 
   // file does not exist
   if (!file_dentry) {
@@ -183,6 +211,9 @@ struct file *vfs_open(const char *path, int flags) {
 
   return file;
 }
+
+
+
 
 //
 // read content from "file" starting from file->offset, and store it in "buf".
@@ -265,7 +296,7 @@ int vfs_link(const char *oldpath, const char *newpath) {
 
   // lookup oldpath
   struct dentry *old_file_dentry =
-      lookup_final_dentry(oldpath, &parent, miss_name);
+      parse_final_dentry(oldpath, &parent, miss_name);
   if (!old_file_dentry) {
     sprint("vfs_link: cannot find the file!\n");
     return -1;
@@ -280,7 +311,7 @@ int vfs_link(const char *oldpath, const char *newpath) {
   // lookup the newpath
   // note that parent is changed to be the last directory entry to be accessed
   struct dentry *new_file_dentry =
-      lookup_final_dentry(newpath, &parent, miss_name);
+      parse_final_dentry(newpath, &parent, miss_name);
   if (new_file_dentry) {
     sprint("vfs_link: the new file already exists!\n");
     return -1;
@@ -314,7 +345,7 @@ int vfs_unlink(const char *path) {
   char miss_name[MAX_PATH_LEN];
 
   // lookup the file, find its parent direntry
-  struct dentry *file_dentry = lookup_final_dentry(path, &parent, miss_name);
+  struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
   if (!file_dentry) {
     sprint("vfs_unlink: cannot find the file!\n");
     return -1;
@@ -403,7 +434,7 @@ struct file *vfs_opendir(const char *path) {
   char miss_name[MAX_PATH_LEN];
 
   // lookup the dir
-  struct dentry *file_dentry = lookup_final_dentry(path, &parent, miss_name);
+  struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
 
   if (!file_dentry || file_dentry->dentry_inode->type != DIR_I) {
     sprint("vfs_opendir: cannot find the direntry!\n");
@@ -447,7 +478,7 @@ int vfs_mkdir(const char *path) {
   char miss_name[MAX_PATH_LEN];
 
   // lookup the dir, find its parent direntry
-  struct dentry *file_dentry = lookup_final_dentry(path, &parent, miss_name);
+  struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
   if (file_dentry) {
     sprint("vfs_mkdir: the directory already exists!\n");
     return -1;
@@ -522,6 +553,10 @@ struct dentry *lookup_final_dentry(const char *path, struct dentry **parent,
   struct dentry *this = *parent;
 
   while (token != NULL) {
+    if(0 == strcmp(".", token) || 0 == strcmp("..", token)) {
+      token = strtok(NULL, "/");
+      continue;
+    }
     *parent = this;
     this = hash_get_dentry((*parent), token);  // try hash first
     if (this == NULL) {

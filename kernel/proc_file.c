@@ -14,6 +14,8 @@
 #include "spike_interface/spike_utils.h"
 #include "util/functions.h"
 #include "util/string.h"
+#include "vfs.h"
+#include <string.h>
 
 //
 // initialize file system
@@ -220,4 +222,37 @@ int do_link(char *oldpath, char *newpath) {
 //
 int do_unlink(char *path) {
   return vfs_unlink(path);
+}
+
+int do_rcwd(char *dst) {
+  struct dentry *now = current->pfiles->cwd;
+  char dir_names[MAX_PATH_LEN][MAX_DENTRY_NAME_LEN];
+  int num_name = 0;
+  while(now != vfs_root_dentry) {
+    strcpy(dir_names[num_name++], now->name);
+    now = now->parent;
+  }
+  if(0 == num_name) {
+    strcpy(dst, "/");
+    return 0;
+  }
+  int offset = 0;
+  for(int i = 0; i < num_name; i++) {
+    dst[offset++] = '/';
+    strcpy(dst + offset, dir_names[i]);
+    offset += strlen(dir_names[i]);
+  }
+  return 0;
+}
+
+int do_ccwd(const char *dst) {
+  struct dentry *parent = NULL;
+  char miss_name[MAX_DENTRY_NAME_LEN];
+  struct dentry *now = parse_final_dentry(dst, &parent, miss_name);
+  if(NULL == now) {
+    panic("path now found");
+    return -1;
+  }
+  current->pfiles->cwd = now;
+  return 0;
 }

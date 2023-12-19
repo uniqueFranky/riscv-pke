@@ -24,6 +24,9 @@ int do_closedir(int fd);
 int do_link(char *oldpath, char *newpath);
 int do_unlink(char *path);
 
+int do_rcwd(char *dst);
+int do_ccwd(const char *dst);
+
 void fs_init(void);
 
 // data structure that manages all openned files in a PCB

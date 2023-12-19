@@ -206,6 +206,8 @@ int hash_erase_vinode(struct vinode *vinode);
 struct vinode *default_alloc_vinode(struct super_block *sb);
 struct dentry *lookup_final_dentry(const char *path, struct dentry **parent,
                                    char *miss_name);
+struct dentry *parse_final_dentry(const char *path, struct dentry **parent,
+                                   char *miss_name);
 void get_base_name(const char *path, char *base_name);
 
 #endif
