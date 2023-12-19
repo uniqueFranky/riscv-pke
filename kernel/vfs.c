@@ -111,7 +111,6 @@ struct dentry *parse_final_dentry(const char *path, struct dentry **parent, char
   if(path[0] == '/') {
     now = vfs_root_dentry;
   }
-  struct dentry *prev = NULL;
   char *token = strtok(path_to_split, "/");
   while(NULL != token) {
     if(0 == strcmp("..", token)) {
