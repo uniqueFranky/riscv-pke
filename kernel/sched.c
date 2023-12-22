@@ -82,6 +82,7 @@ void remove_from_waiting_queue(process **queue_head, process *trigger, int (*sho
   // we first do this because head has no prev
   while(NULL != *queue_head && should_remove(*queue_head, trigger)) {
     p = *queue_head;
+    p->trapframe->regs.a0 = trigger->pid;
     // cannot say 'insert_to_ready_queue(*queue_head)' here
     // because insert_to_ready_queue changes the next ptr of head
     // instead, use p to stash queue_head
@@ -93,6 +94,8 @@ void remove_from_waiting_queue(process **queue_head, process *trigger, int (*sho
     process *prev = *queue_head;
     while(NULL != p) {
       if(should_remove(p, trigger)) { // should remove p from queue
+        // return wakeup_by id
+        p->trapframe->regs.a0 = trigger->pid;
         // set the next node of prev to be the next node of p
         prev->queue_next = p->queue_next;
         // insert the process which is pointed by p into ready queue
