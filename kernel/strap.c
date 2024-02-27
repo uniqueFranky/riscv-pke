@@ -25,10 +25,7 @@ static void handle_syscall(trapframe *tf) {
   long ret = do_syscall(tf->regs.a0, tf->regs.a1, tf->regs.a2,
    tf->regs.a3, tf->regs.a4, tf->regs.a5,
    tf->regs.a6, tf->regs.a7);
-  asm volatile(
-    "add a0, %0, zero": "=r"(ret)
-  );
-
+  tf->regs.a0 = ret;
 }
 
 //

@@ -46,6 +46,44 @@ elf_status elf_init(elf_ctx *ctx, void *info) {
 
   return EL_OK;
 }
+elf_ctx global_elf_ctx;
+
+elf_ctx *get_global_elf_ctx() {
+  return &global_elf_ctx;
+}
+
+elf_sect_header read_elf_section_header(elf_ctx *ctx, int idx) {
+  elf_sect_header sh;
+  elf_fpread(ctx, &sh, sizeof(elf_sect_header), ctx->ehdr.shoff + sizeof(elf_sect_header) * idx);
+  return sh;
+}
+
+elf_sect_header read_elf_section_header_with_name(elf_ctx *ctx, const char *name) {
+
+  static int inited = 0;
+  static elf_sect_header shstrtab;
+  static char buf[1000];
+
+  if(!inited) {
+    shstrtab = read_elf_section_header(ctx, ctx->ehdr.shstrndx);
+    read_elf_into_buffer(ctx, buf, shstrtab.offset, shstrtab.size);
+    inited = 1;
+  }
+
+  elf_sect_header header;
+  for(int i = 0; i < ctx->ehdr.shnum; i++) {
+    header = read_elf_section_header(ctx, i);
+    if(0 == strcmp(buf + header.name, name)) {
+      return header;
+    }
+  }
+  panic("no corresponding section name");
+}
+
+void read_elf_into_buffer(elf_ctx *ctx, void *dst, int offset, int size) {
+  elf_fpread(ctx, dst, size, offset);
+}
+
 
 // leb128 (little-endian base 128) is a variable-length
 // compression algoritm in DWARF
@@ -194,6 +232,63 @@ endop:;
     //     sprint("%p %d %d\n", p->line[i].addr, p->line[i].line, p->line[i].file);
 }
 
+void read_runtime_error_source_code() {
+  elf_ctx *elf = get_global_elf_ctx();
+  elf_sect_header debug_line_header = read_elf_section_header_with_name(elf, ".debug_line");
+  // sprint("offset = %d, size = 0x%lx\n", debug_line_header.offset, debug_line_header.size);
+  char content[3000];
+  read_elf_into_buffer(elf, content, debug_line_header.offset, debug_line_header.size);
+  make_addr_line(elf, content, debug_line_header.size);
+  // why not tf->epc?
+  uint64 epc = read_csr(mepc);
+  process *p = ((elf_info *)elf->info)->p;
+  int line_idx = 0;
+  while(p->line[line_idx].addr != epc) {
+    // sprint("0x%lx\n", p->line[line_idx].addr);
+    line_idx++;
+  }
+  const char *file_name = p->file[p->line[line_idx].file].file;
+  const char *dir_name = p->dir[p->file[p->line[line_idx].file].dir];
+  
+  sprint("Runtime error at %s/%s:%d\n", dir_name, file_name, p->line[line_idx].line);
+  char path[100];
+  int path_len = 0;
+  for(int i = 0; i < strlen(dir_name); i++) {
+    path[path_len++] = dir_name[i];
+  }
+  path[path_len++] = '/';
+  for(int i = 0; i < strlen(file_name); i++) {
+    path[path_len++] = file_name[i];
+  }
+  path[path_len] = '\0';
+  spike_file_t *file = spike_file_open(path, O_RDONLY, 0);
+
+  int cur_line_no = 1;
+  ssize_t cur_offset = 0;
+  char line_content[100];
+  int line_len = 0;
+  while(cur_line_no < p->line[line_idx].line) {
+    char c;
+    while(spike_file_pread(file, &c, 1, cur_offset)) {
+      cur_offset++;
+      if(c == '\n') {
+        cur_line_no++;
+        break;
+      }
+    }
+  }
+
+  char c;
+  while(spike_file_pread(file, &c, 1, cur_offset) && c != '\n') {
+    cur_offset++;
+    line_content[line_len++] = c;
+  }
+  line_content[line_len] = '\0';
+  sprint("%s\n", line_content);
+
+  spike_file_close(file);
+}
+
 //
 // load the elf segments to memory regions as we are in Bare mode in lab1
 //
@@ -276,6 +371,8 @@ void load_bincode_from_host_elf(process *p) {
 
   // load elf. elf_load() is defined above.
   if (elf_load(&elfloader) != EL_OK) panic("Fail on loading elf.\n");
+
+  global_elf_ctx = elfloader;
 
   // entry (virtual, also physical in lab1_x) address
   p->trapframe->epc = elfloader.ehdr.entry;

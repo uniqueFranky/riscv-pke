@@ -31,7 +31,6 @@ typedef struct process_t {
   uint64 kstack;
   // trapframe storing the context of a (User mode) process.
   trapframe* trapframe;
-
   // added @lab1_challenge2
   char *debugline; char **dir; code_file *file; addr_line *line; int line_ind;
 }process;
