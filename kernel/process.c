@@ -18,6 +18,9 @@
 #include "sched.h"
 #include "spike_interface/spike_utils.h"
 
+#define NSEM PROC_MAX_SEM_NUM * 2
+semaphore *sem_array[PROC_MAX_SEM_NUM];
+
 //Two functions defined in kernel/usertrap.S
 extern char smode_trap_vector[];
 extern void return_to_user(trapframe *, uint64 satp);
@@ -31,6 +34,26 @@ process procs[NPROC];
 
 // current points to the currently running user-mode application.
 process* current = NULL;
+
+semaphore sem_pool[NSEM];
+semaphore *free_sem_queue_head;
+
+semaphore *alloc_semaphore() {
+  if(NULL == free_sem_queue_head) {
+    panic("insufficient semphore!");
+  }
+  semaphore *ret = free_sem_queue_head;
+  free_sem_queue_head = free_sem_queue_head->queue_next;
+  ret->queue_next = NULL;
+  ret->waiting_queue = NULL;
+  return ret;
+}
+
+void free_semaphore(semaphore *sem) {
+  sem->waiting_queue = NULL;
+  sem->queue_next = free_sem_queue_head;
+  free_sem_queue_head = sem;
+}
 
 //
 // switch to a user-mode process
@@ -79,6 +102,14 @@ void init_proc_pool() {
   for (int i = 0; i < NPROC; ++i) {
     procs[i].status = FREE;
     procs[i].pid = i;
+  }
+}
+
+void init_sem_pool() {
+  free_sem_queue_head = NULL;
+  for(int i = 0; i < NSEM; i++) {
+    sem_pool[i].queue_next = free_sem_queue_head;
+    free_sem_queue_head = &sem_pool[i];
   }
 }
 

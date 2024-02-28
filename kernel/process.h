@@ -23,6 +23,8 @@ typedef struct trapframe_t {
 // maximum number of pages in a process's heap
 #define MAX_HEAP_PAGES 32
 
+#define PROC_MAX_SEM_NUM 16
+
 // possible status of a process
 enum proc_status {
   FREE,            // unused state
@@ -61,6 +63,17 @@ typedef struct process_heap_manager {
   uint32 free_pages_count;
 }process_heap_manager;
 
+struct process;
+
+typedef struct semaphore_t {
+  int value;
+  struct process_t *waiting_queue;
+  struct semaphore_t *queue_next;
+} semaphore;
+
+semaphore *alloc_semaphore();
+void free_semaphore(semaphore *sem);
+
 // the extremely simple definition of process, used for begining labs of PKE
 typedef struct process_t {
   // pointing to the stack used in trap handling.
@@ -90,6 +103,10 @@ typedef struct process_t {
   // accounting. added @lab3_3
   int tick_count;
 }process;
+
+extern semaphore *sem_array[PROC_MAX_SEM_NUM];
+
+void init_sem_pool();
 
 // switch to run user app
 void switch_to(process*);
