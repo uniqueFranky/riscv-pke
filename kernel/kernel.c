@@ -43,7 +43,7 @@ process* load_user_program() {
   proc = alloc_process();
   sprint("User application is loading.\n");
 
-  load_bincode_from_host_elf(proc);
+  load_bincode_from_vfs_elf(proc);
   return proc;
 }
 

@@ -58,6 +58,11 @@ static uint64 elf_fpread(elf_ctx *ctx, void *dest, uint64 nb, uint64 offset) {
   return spike_file_pread(msg->f, dest, nb, offset);
 }
 
+static uint64 elf_vfs_pread(struct file *elf_file, void *dest, uint64 nb, uint64 offset) {
+  vfs_lseek(elf_file, offset, 0);
+  return vfs_read(elf_file, dest, nb);
+}
+
 //
 // init elf_ctx, a data structure that loads the elf.
 //
@@ -70,6 +75,16 @@ elf_status elf_init(elf_ctx *ctx, void *info) {
   // check the signature (magic value) of the elf
   if (ctx->ehdr.magic != ELF_MAGIC) return EL_NOTELF;
 
+  return EL_OK;
+}
+
+elf_status elf_vfs_init(elf_ctx *ctx, struct file *elf_file) {
+  if(elf_vfs_pread(elf_file, &ctx->ehdr, sizeof(ctx->ehdr), 0)!= sizeof(ctx->ehdr)) {
+    return EL_EIO;
+  }
+  if (ctx->ehdr.magic != ELF_MAGIC) {
+    return EL_NOTELF;
+  }
   return EL_OK;
 }
 
@@ -116,6 +131,51 @@ elf_status elf_load(elf_ctx *ctx) {
       panic( "unknown program segment encountered, segment flag:%d.\n", ph_addr.flags );
 
     ((process*)(((elf_info*)(ctx->info))->p))->total_mapped_region ++;
+  }
+
+  return EL_OK;
+}
+
+elf_status elf_vfs_load(process *p, elf_ctx *ctx, struct file *elf_file) {
+  // elf_prog_header structure is defined in kernel/elf.h
+  elf_prog_header ph_addr;
+  int i, off;
+
+  // traverse the elf program segment headers
+  for (i = 0, off = ctx->ehdr.phoff; i < ctx->ehdr.phnum; i++, off += sizeof(ph_addr)) {
+    // read segment headers
+    if (elf_vfs_pread(elf_file, (void *)&ph_addr, sizeof(ph_addr), off) != sizeof(ph_addr)) return EL_EIO;
+    
+    if (ph_addr.type != ELF_PROG_LOAD) continue;
+    if (ph_addr.memsz < ph_addr.filesz) return EL_ERR;
+    if (ph_addr.vaddr + ph_addr.memsz < ph_addr.vaddr) return EL_ERR;
+
+    // allocate memory block before elf loading
+    void *dest = elf_process_alloc_mb(p, ph_addr.vaddr, ph_addr.vaddr, ph_addr.memsz);
+
+    // actual loading
+    if (elf_vfs_pread(elf_file, dest, ph_addr.memsz, ph_addr.off) != ph_addr.memsz)
+      return EL_EIO;
+
+    // record the vm region in proc->mapped_info. added @lab3_1
+    int j;
+    for( j=0; j<PGSIZE/sizeof(mapped_region); j++ ) //seek the last mapped region
+      if( p->mapped_info[j].va == 0x0 ) break;
+
+    p->mapped_info[j].va = ph_addr.vaddr;
+    p->mapped_info[j].npages = 1;
+
+    // SEGMENT_READABLE, SEGMENT_EXECUTABLE, SEGMENT_WRITABLE are defined in kernel/elf.h
+    if( ph_addr.flags == (SEGMENT_READABLE|SEGMENT_EXECUTABLE) ){
+      p->mapped_info[j].seg_type = CODE_SEGMENT;
+      sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
+    }else if ( ph_addr.flags == (SEGMENT_READABLE|SEGMENT_WRITABLE) ){
+      p->mapped_info[j].seg_type = DATA_SEGMENT;
+      sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
+    }else
+      panic( "unknown program segment encountered, segment flag:%d.\n", ph_addr.flags );
+
+    p->total_mapped_region ++;
   }
 
   return EL_OK;
@@ -181,6 +241,36 @@ void load_bincode_from_host_elf(process *p) {
 
   // close the host spike file
   spike_file_close( info.f );
+
+  sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
+}
+
+void load_bincode_from_vfs_elf(process *p) {
+  arg_buf arg_bug_msg;
+
+  // retrieve command line arguements
+  size_t argc = parse_args(&arg_bug_msg);
+  if (!argc) panic("You need to specify the application program!\n");
+
+  sprint("Application: %s\n", arg_bug_msg.argv[0]);
+
+  //elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
+  elf_ctx elfloader;
+
+  struct file *elf_file = vfs_open(arg_bug_msg.argv[0], O_RDONLY);
+
+  // init elfloader context. elf_init() is defined above.
+  if (elf_vfs_init(&elfloader, elf_file) != EL_OK)
+    panic("fail to init elfloader.\n");
+
+  // load elf. elf_load() is defined above.
+  if (elf_vfs_load(p, &elfloader, elf_file) != EL_OK) panic("Fail on loading elf.\n");
+
+  // entry (virtual, also physical in lab1_x) address
+  p->trapframe->epc = elfloader.ehdr.entry;
+
+  // close the host spike file
+  vfs_close(elf_file);
 
   sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
 }
