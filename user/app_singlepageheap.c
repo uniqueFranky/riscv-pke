@@ -37,6 +37,20 @@ int main(void) {
 //  else{
 //    printu("0x%lx 0x%lx\n", m, n);
 //  }
+
+
+
+  // // my test
+  // better_free((void *)p);
+  // better_free((void *)n);
+  // char *a = (char *)better_malloc(100);
+  // char *b = (char *)better_malloc(4096);
+  // char *c = (char *)better_malloc(100);
+  // strcpy(c, "my test!!");
+  // better_free((void *)a);
+  // better_free((void *)b);
+  // printu("%s\n", c);
+  // better_free((void *)c);
   exit(0);
   return 0;
 }

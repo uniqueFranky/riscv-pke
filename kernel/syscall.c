@@ -122,7 +122,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
           if(nb < PGSIZE) {
             memory_descriptor *free_md = alloc_memory_descriptor();
             free_md->page_start_pa = (uint64)pa;
-            free_md->page_start_va = va;
+            free_md->page_start_va = current->user_free_va;
             free_md->start_pa = (uint64)pa + nb;
             free_md->size = PGSIZE - nb;
             insert_into_md_list(&(current->free_md_list_head), free_md, 1);
@@ -138,6 +138,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
     for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
       if(current->page_cb[i].valid && current->page_cb[i].start_pa == md->page_start_pa) {
         current->page_cb[i].allocated_md_num++;
+        break;
       }
     }
     // sprint("existing md pa = 0x%lx, va = 0x%lx\n", md->start_pa, md->page_start_va + md->start_pa - md->page_start_pa);
@@ -170,7 +171,7 @@ void free_single_md(memory_descriptor *md) {
   remove_from_md_list(&(current->allocated_md_list_head), md);
   insert_into_md_list(&(current->free_md_list_head), md, 1);
   if(0 == --current->page_cb[page_id].allocated_md_num) { // free the whole page
-    // sprint("free whole page\n");
+    // sprint("free whole page pa = 0x%lx\n", current->page_cb[page_id].start_pa);
     md = current->free_md_list_head;
     while(NULL != md && md->page_start_pa != current->page_cb[page_id].start_pa) {
       md = md->next;
@@ -194,6 +195,7 @@ uint64 sys_user_free_page(uint64 va) {
   free_single_md(now);
   if(NULL != now->succ) {
     free_single_md(now->succ);
+    now->succ = NULL;
   }
 
   return 0;

@@ -83,7 +83,9 @@ void remove_from_md_list(memory_descriptor **head, memory_descriptor *md) {
     while(NULL != now->next && md != now->next) {
       now = now->next;
     }
-    now->next = now->next->next;
+    if(NULL != now->next) {
+      now->next = now->next->next;
+    }
   }
 }
 
