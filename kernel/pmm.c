@@ -87,6 +87,16 @@ void remove_from_md_list(memory_descriptor **head, memory_descriptor *md) {
   }
 }
 
+int get_page_id_by_start_pa(uint64 pa) {
+  process *p = current;
+  for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
+    if(p->page_cb[i].valid && p->page_cb[i].start_pa == pa) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 // g_free_mem_list is the head of the list of free physical memory pages
 static list_node g_free_mem_list;
 
