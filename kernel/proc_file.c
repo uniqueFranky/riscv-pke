@@ -232,7 +232,7 @@ int do_rcwd(char *dst) {
     strcpy(dir_names[num_name++], now->name);
     now = now->parent;
   }
-  if(0 == num_name) {
+  if(0 == num_name) { // only root
     strcpy(dst, "/");
     return 0;
   }
