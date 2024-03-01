@@ -37,8 +37,9 @@ ssize_t sys_user_exit(uint64 code) {
   // therefore, shutdown the system when the app calls exit()
   if(0 == hartid) {
     sprint("hartid = %d: shutdown with code:%d.\n", hartid, code);
+    shutdown(code);
   }
-  shutdown(code);
+  return 0;
 }
 
 //
