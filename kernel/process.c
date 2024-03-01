@@ -12,6 +12,7 @@
 #include "process.h"
 #include "elf.h"
 #include "string.h"
+#include "sync_utils.h"
 
 #include "spike_interface/spike_utils.h"
 
@@ -20,15 +21,14 @@ extern char smode_trap_vector[];
 extern void return_to_user(trapframe*);
 
 // current points to the currently running user-mode application.
-process* current = NULL;
-
+process *current[NCPU] = {NULL};
 //
 // switch to a user-mode process
 //
 void switch_to(process* proc) {
   assert(proc);
-  current = proc;
-
+  // sprint("in swith to, read tp = %d, proc = %d, epc = 0x%lx\n", read_tp(), proc->hartid, proc->trapframe->epc);
+  current[read_tp()] = proc;
   // write the smode_trap_vector (64-bit func. address) defined in kernel/strap_vector.S
   // to the stvec privilege register, such that trap handler pointed by smode_trap_vector
   // will be triggered when an interrupt occurs in S mode.

@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "config.h"
 #include "util/types.h"
 #include "syscall.h"
 #include "string.h"
@@ -12,23 +13,31 @@
 #include "util/functions.h"
 
 #include "spike_interface/spike_utils.h"
+#include "sync_utils.h"
 
 //
 // implement the SYS_user_print syscall
 //
 ssize_t sys_user_print(const char* buf, size_t n) {
-  sprint("hartid = ?: %s\n", buf);
+  int hartid = read_tp();
+  sprint("hartid = %d: %s\n", hartid, buf);
   return 0;
 }
+
+static int cpu_exit_cnt = 0;
 
 //
 // implement the SYS_user_exit syscall
 //
 ssize_t sys_user_exit(uint64 code) {
-  sprint("hartid = ?: User exit with code:%d.\n", code);
+  int hartid = read_tp();
+  sprint("hartid = %d: User exit with code:%d.\n", hartid, code);
+  sync_barrier(&cpu_exit_cnt, NCPU);
   // in lab1, PKE considers only one app (one process). 
   // therefore, shutdown the system when the app calls exit()
-  sprint("hartid = ?: shutdown with code:%d.\n", code);
+  if(0 == hartid) {
+    sprint("hartid = %d: shutdown with code:%d.\n", hartid, code);
+  }
   shutdown(code);
 }
 

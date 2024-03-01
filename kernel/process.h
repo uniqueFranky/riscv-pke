@@ -1,6 +1,7 @@
 #ifndef _PROC_H_
 #define _PROC_H_
 
+#include "config.h"
 #include "riscv.h"
 
 typedef struct trapframe_t {
@@ -25,6 +26,6 @@ typedef struct process_t {
 
 void switch_to(process*);
 
-extern process* current;
+extern process* current[NCPU];
 
 #endif
