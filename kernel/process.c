@@ -226,9 +226,6 @@ int do_fork( process* parent)
           memcpy((void*)&child->user_heap, (void*)&parent->user_heap, sizeof(parent->user_heap));
           break;
         }
-<<<<<<< HEAD
-      case CODE_SEGMENT:
-=======
 
         // copy and map the heap blocks
         for (uint64 heap_block = current->user_heap.heap_bottom;
@@ -250,7 +247,6 @@ int do_fork( process* parent)
       }
         
       case CODE_SEGMENT: {
->>>>>>> lab3_3_rrsched
         // TODO (lab3_1): implment the mapping of child code segment to parent's
         // code segment.
         // hint: the virtual address mapping of code segment is tracked in mapped_info
