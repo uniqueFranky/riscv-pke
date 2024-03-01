@@ -1,4 +1,5 @@
 #include "pmm.h"
+#include "sync_utils.h"
 #include "util/functions.h"
 #include "riscv.h"
 #include "config.h"
@@ -33,10 +34,14 @@ static void create_freepage_list(uint64 start, uint64 end) {
     free_page( (void *)p );
 }
 
+// lock for page free and alloc
+static int mem_lock;
+
 //
 // place a physical page at *pa to the free list of g_free_mem_list (to reclaim the page)
 //
 void free_page(void *pa) {
+  spin_lock(&mem_lock);
   if (((uint64)pa % PGSIZE) != 0 || (uint64)pa < free_mem_start_addr || (uint64)pa >= free_mem_end_addr)
     panic("free_page 0x%lx \n", pa);
 
@@ -44,6 +49,7 @@ void free_page(void *pa) {
   list_node *n = (list_node *)pa;
   n->next = g_free_mem_list.next;
   g_free_mem_list.next = n;
+  spin_unlock(&mem_lock);
 }
 
 //
@@ -51,12 +57,14 @@ void free_page(void *pa) {
 // Allocates only ONE page!
 //
 void *alloc_page(void) {
+  spin_lock(&mem_lock);
   list_node *n = g_free_mem_list.next;
-  uint64 hartid = 0;
+  int hartid = read_tp();
   if (vm_alloc_stage[hartid]) {
     sprint("hartid = %ld: alloc page 0x%x\n", hartid, n);
   }
   if (n) g_free_mem_list.next = n->next;
+  spin_unlock(&mem_lock);
   return (void *)n;
 }
 
