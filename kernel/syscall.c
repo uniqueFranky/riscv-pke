@@ -67,6 +67,9 @@ uint64 sys_user_allocate_page() {
 // reclaim a page, indicated by "va". added @lab2_2
 //
 uint64 sys_user_free_page(uint64 va) {
+  if(va >= current->user_heap.heap_bottom && va < current->user_heap.heap_top) { // freeing a heap page
+    do_copy_to_sons(current);
+  }
   user_vm_unmap((pagetable_t)current->pagetable, va, PGSIZE, 1);
   // add the reclaimed page to the free page list
   current->user_heap.free_pages_address[current->user_heap.free_pages_count++] = va;

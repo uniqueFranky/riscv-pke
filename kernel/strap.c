@@ -57,13 +57,25 @@ void handle_user_page_fault(uint64 mcause, uint64 sepc, uint64 stval) {
   sprint("handle_page_fault: %lx\n", stval);
   switch (mcause) {
     case CAUSE_STORE_PAGE_FAULT: {
-      // TODO (lab2_3): implement the operations that solve the page fault to
-      // dynamically increase application stack.
-      // hint: first allocate a new physical page, and then, maps the new page to the
-      // virtual address that causes the page fault.
-      void *pa = alloc_page();
-      user_vm_map(current->pagetable, ROUNDDOWN(stval, PGSIZE), PGSIZE, (uint64)pa, prot_to_type(PROT_WRITE | PROT_READ, 1));
 
+      pte_t *pte = page_walk(current->pagetable, stval, 0);
+      if(NULL == pte) { // page missing
+        // TODO (lab2_3): implement the operations that solve the page fault to
+        // dynamically increase application stack.
+        // hint: first allocate a new physical page, and then, maps the new page to the
+        // virtual address that causes the page fault.
+        void *pa = alloc_page();
+        user_vm_map(current->pagetable, ROUNDDOWN(stval, PGSIZE), PGSIZE, (uint64)pa, prot_to_type(PROT_WRITE | PROT_READ, 1));
+      } else {
+        if(*pte & PTE_RSW_0) { // cow
+          do_copy_on_write(current, current->parent);
+        }
+        if(*pte & PTE_RSW_1) { // copy its heap to all sons whose user_heap.has_copied == 0
+          do_copy_to_sons(current);
+          *pte &= ~PTE_RSW_1;
+          *pte |= PTE_W;
+        }
+      }
       break;
     }
 
