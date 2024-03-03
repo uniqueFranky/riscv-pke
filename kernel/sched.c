@@ -3,10 +3,14 @@
  */
 
 #include "sched.h"
+#include "process.h"
 #include "spike_interface/spike_utils.h"
 
 process* ready_queue_head = NULL;
 
+// queue where processes in it are wating for the index process to exit
+process* wait_for_pid_exit_queue_head[NPROC + 1] = {NULL};
+process* wait_for_sub_exit_queue_head = {NULL};
 //
 // insert a process, proc, into the END of ready queue.
 //
@@ -33,6 +37,91 @@ void insert_to_ready_queue( process* proc ) {
   proc->queue_next = NULL;
 
   return;
+}
+
+void insert_into_queue(process **queue_head, process *proc) {
+  if(NULL == *queue_head) { // queue is empty
+    *queue_head = proc;
+    proc->queue_next = NULL;
+    return;
+  }
+  
+  process *p = *queue_head;
+  while(NULL != p->queue_next) {
+    if(p == proc) { // already in queue
+      return;
+    }
+    p = p->queue_next;
+  }
+  // now p is the last proc in queue
+  if(p == proc) {
+    return;
+  }
+  p->queue_next = proc;
+  proc->queue_next = NULL;
+}
+
+void insert_into_exit_wait_queue(process *proc, int pid) {
+  if(pid >= NPROC) {
+    panic("invalid pid!");
+  }
+  if(pid > 0) {
+    insert_into_queue(&wait_for_pid_exit_queue_head[pid], proc);
+  } else {
+    insert_into_queue(&wait_for_sub_exit_queue_head, proc);
+  }
+  proc->status = BLOCKED;
+}
+
+void remove_from_waiting_queue(process **queue_head, process *trigger, int (*should_remove)(process *fa, process *son)) {
+  if(NULL == *queue_head) { // waiting queue is empty
+    return;
+  }
+  process *p;
+  // remove from head until head cannot be removed
+  // we first do this because head has no prev
+  while(NULL != *queue_head && should_remove(*queue_head, trigger)) {
+    p = *queue_head;
+    p->trapframe->regs.a0 = trigger->pid;
+    // cannot say 'insert_to_ready_queue(*queue_head)' here
+    // because insert_to_ready_queue changes the next ptr of head
+    // instead, use p to stash queue_head
+    *queue_head = (*queue_head)->queue_next;
+    insert_to_ready_queue(p);
+  }
+  if(NULL != *queue_head) { // queue is still not empty
+    p = (*queue_head)->queue_next;
+    process *prev = *queue_head;
+    while(NULL != p) {
+      if(should_remove(p, trigger)) { // should remove p from queue
+        // return wakeup_by id
+        p->trapframe->regs.a0 = trigger->pid;
+        // set the next node of prev to be the next node of p
+        prev->queue_next = p->queue_next;
+        // insert the process which is pointed by p into ready queue
+        insert_to_ready_queue(p);
+        // set p to be the next node
+        p = prev->queue_next;
+      } else {
+        prev = p;
+        p = p->queue_next;
+      } 
+    }
+  }
+}
+
+int should_remove_from_sub_wait_queue(process *fa, process *son) {
+  return son->parent == fa;
+}
+
+int should_remove_from_pid_wait_queue(process *fa, process *son) {
+  // always return true because all the processes in queue are waiting for the corresponding son
+  return 1;
+}
+
+void wakeup_exit_waiting_process(process *proc) {
+  remove_from_waiting_queue(&wait_for_pid_exit_queue_head[proc->pid], proc, should_remove_from_pid_wait_queue);
+  remove_from_waiting_queue(&wait_for_sub_exit_queue_head, proc, should_remove_from_sub_wait_queue);
 }
 
 //
