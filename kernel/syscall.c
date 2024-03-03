@@ -226,7 +226,26 @@ ssize_t sys_user_unlink(char * vfn){
 ssize_t sys_user_exec(char *path, char *param) {
   char *path_pa = (char *)user_va_to_pa(current->pagetable, (void *)path);
   char *param_pa = (char *)user_va_to_pa(current->pagetable, (void *)param);
+  char param_new[100];
+  strcpy(param_new, param_pa);
   substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
+
+  
+  // write exec parameter
+  char **argv_va = (char **)sys_user_allocate_page();
+  char *argv_0_va = (char *)sys_user_allocate_page();
+
+  char **argv_pa = user_va_to_pa(current->pagetable, (void *)argv_va);
+  // argv[0] stores the va of parameter string
+  argv_pa[0] = argv_0_va;
+
+  char *argv_0_pa = (char *)user_va_to_pa(current->pagetable, (void *)argv_0_va);
+  // cannot use param_pa, because the original data segment has been substituted
+  strcpy(argv_0_pa, param_new);
+
+  current->trapframe->regs.a0 = 1;
+  current->trapframe->regs.a1 = (uint64)argv_va;
+
   return 0;
 }
 
