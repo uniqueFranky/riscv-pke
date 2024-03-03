@@ -173,8 +173,8 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
       for(int j = 0; j < PGSIZE/sizeof(mapped_region); j++) {
         if(p->mapped_info[j].seg_type == CODE_SEGMENT) {
           sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
-          // free the original page
-          user_vm_unmap(p->pagetable, p->mapped_info[j].va, PGSIZE, 1); 
+          // do NOT free the original page, father process needs code segment
+          user_vm_unmap(p->pagetable, p->mapped_info[j].va, PGSIZE, 0); 
           // alloc new page
           void *dest = elf_process_alloc_mb(p, ph_addr.vaddr, ph_addr.vaddr, ph_addr.memsz);
           p->mapped_info[j].va = ph_addr.vaddr;
