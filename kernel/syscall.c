@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include "elf.h"
 #include "util/types.h"
 #include "syscall.h"
 #include "string.h"
@@ -222,6 +223,13 @@ ssize_t sys_user_unlink(char * vfn){
   return do_unlink(pfn);
 }
 
+ssize_t sys_user_exec(char *path, char *param) {
+  char *path_pa = (char *)user_va_to_pa(current->pagetable, (void *)path);
+  char *param_pa = (char *)user_va_to_pa(current->pagetable, (void *)param);
+  substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
+  return 0;
+}
+
 //
 // [a0]: the syscall number; [a1] ... [a7]: arguments to the syscalls.
 // returns the code of success, (e.g., 0 means success, fail for otherwise)
@@ -272,6 +280,8 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, long a6, l
       return sys_user_unlink((char *)a1);
     case SYS_user_wait:
       return sys_user_wait(a1);
+    case SYS_user_exec:
+      return sys_user_exec((char *)a1, (char *)a2);
     default:
       panic("Unknown syscall %ld \n", a0);
   }
