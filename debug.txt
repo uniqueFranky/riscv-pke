@@ -1,0 +1,199 @@
+In m_start, hartid:0
+HTIF is available!
+(Emulated) memory size: 2048 MB
+Enter supervisor mode...
+PKE kernel start 0x0000000080000000, PKE kernel end: 0x0000000080011000, PKE kernel size: 0x0000000000011000 .
+free physical memory address: [0x0000000080011000, 0x0000000087ffffff] 
+kernel memory manager is initializing ...
+KERN_BASE 0x0000000080000000
+physical address of _etext is: 0x0000000080009000
+kernel page table is on 
+RAMDISK0: base address of RAMDISK0 is: 0x0000000087f35000
+RFS: format RAMDISK0 done!
+Switch to user mode...
+in alloc_proc. user frame 0x0000000087f29000, user stack 0x000000007ffff000, user kstack 0x0000000087f28000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+User application is loading.
+Application: /bin/app_shell
+CODE_SEGMENT added at mapped info offset:4
+DATA_SEGMENT added at mapped info offset:5
+Application program entry point (virtual address): 0x00000000000100b0
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+
+======== Shell Start ========
+
+Next command: /bin/app_mkdir /RAMDISK0/sub_dir
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087f0e000, user stack 0x000000007ffff000, user kstack 0x0000000087f0c000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 1 to ready queue.
+going to schedule process 1 to run.
+Application: /bin/app_mkdir
+CODE_SEGMENT added at mapped info offset:4
+Application program entry point (virtual address): 0x0000000000010078
+
+======== mkdir command ========
+mkdir: /RAMDISK0/sub_dir
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_touch /RAMDISK0/sub_dir/ramfile1
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087ef2000, user stack 0x000000007ffff000, user kstack 0x0000000087ef1000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 2 to ready queue.
+going to schedule process 2 to run.
+Application: /bin/app_touch
+CODE_SEGMENT added at mapped info offset:4
+Application program entry point (virtual address): 0x0000000000010078
+
+======== touch command ========
+touch: /RAMDISK0/sub_dir/ramfile1
+file descriptor fd: 0
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_touch /RAMDISK0/sub_dir/ramfile2
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087edc000, user stack 0x000000007ffff000, user kstack 0x0000000087ee2000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 3 to ready queue.
+going to schedule process 3 to run.
+Application: /bin/app_touch
+CODE_SEGMENT added at mapped info offset:4
+Application program entry point (virtual address): 0x0000000000010078
+
+======== touch command ========
+touch: /RAMDISK0/sub_dir/ramfile2
+file descriptor fd: 0
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_echo /RAMDISK0/sub_dir/ramfile1
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087ec4000, user stack 0x000000007ffff000, user kstack 0x0000000087eca000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 4 to ready queue.
+going to schedule process 4 to run.
+Application: /bin/app_echo
+CODE_SEGMENT added at mapped info offset:4
+DATA_SEGMENT added at mapped info offset:5
+Application program entry point (virtual address): 0x00000000000100b0
+
+======== echo command ========
+echo: /RAMDISK0/sub_dir/ramfile1
+file descriptor fd: 0
+write content: 
+hello world
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_cat /RAMDISK0/sub_dir/ramfile1
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087eac000, user stack 0x000000007ffff000, user kstack 0x0000000087eb2000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 5 to ready queue.
+going to schedule process 5 to run.
+Application: /bin/app_cat
+CODE_SEGMENT added at mapped info offset:4
+Application program entry point (virtual address): 0x0000000000010078
+
+======== cat command ========
+cat: /RAMDISK0/sub_dir/ramfile1
+file descriptor fd: 0
+read content: 
+hello world
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_ls /RAMDISK0/sub_dir
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087e95000, user stack 0x000000007ffff000, user kstack 0x0000000087e9b000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 6 to ready queue.
+going to schedule process 6 to run.
+Application: /bin/app_ls
+CODE_SEGMENT added at mapped info offset:4
+DATA_SEGMENT added at mapped info offset:5
+Application program entry point (virtual address): 0x00000000000100b0
+---------- ls command -----------
+ls "/RAMDISK0/sub_dir":
+[name]               [inode_num]
+ramfile1             2
+ramfile2             3
+------------------------------
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+Next command: /bin/app_ls /RAMDISK0
+
+==========Command Start============
+
+User call fork.
+will fork a child from parent 0.
+in alloc_proc. user frame 0x0000000087e7d000, user stack 0x000000007ffff000, user kstack 0x0000000087e84000 
+FS: created a file management struct for a process.
+in alloc_proc. build proc_file_management successfully.
+going to insert process 7 to ready queue.
+going to schedule process 7 to run.
+Application: /bin/app_ls
+CODE_SEGMENT added at mapped info offset:4
+DATA_SEGMENT added at mapped info offset:5
+Application program entry point (virtual address): 0x00000000000100b0
+---------- ls command -----------
+ls "/RAMDISK0":
+[name]               [inode_num]
+sub_dir              1
+------------------------------
+User exit with code:0.
+going to insert process 0 to ready queue.
+going to schedule process 0 to run.
+==========Command End============
+
+User exit with code:0.
+no more ready processes, system shutdown now.
+System is shutting down with exit code 0.

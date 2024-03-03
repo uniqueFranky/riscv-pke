@@ -3,6 +3,7 @@
  */
 
 #include "vmm.h"
+#include "process.h"
 #include "riscv.h"
 #include "pmm.h"
 #include "util/types.h"
@@ -23,8 +24,11 @@ int map_pages(pagetable_t page_dir, uint64 va, uint64 size, uint64 pa, int perm)
   for (first = ROUNDDOWN(va, PGSIZE), last = ROUNDDOWN(va + size - 1, PGSIZE);
       first <= last; first += PGSIZE, pa += PGSIZE) {
     if ((pte = page_walk(page_dir, first, 1)) == 0) return -1;
-    if (*pte & PTE_V)
-      panic("map_pages fails on mapping va (0x%lx) to pa (0x%lx)", first, pa);
+    if (*pte & PTE_V) {
+      sprint("map_pages fails on mapping va (0x%lx) to pa (0x%lx)", first, pa);
+      panic("map pages failed");
+    }
+
     *pte = PA2PTE(pa) | perm | PTE_V;
   }
   return 0;
@@ -161,6 +165,11 @@ void *user_va_to_pa(pagetable_t page_dir, void *va) {
   // invalid PTE, and should return NULL.
   pte_t *pte = page_walk(page_dir, (uint64)va, 0);
   if(NULL == pte || (*pte & PTE_V) == 0) {
+    if(NULL == pte) {
+      sprint("xxxxxxxxxxxxxxxxx addr 0x%lx not exists\n", (uint64)va);
+    } else {
+      sprint("xxxxxxxxxxxxxxxxx addr 0x%lx not valid\n", (uint64)va);
+    }
     return NULL;
   }
 
@@ -190,20 +199,25 @@ void user_vm_unmap(pagetable_t page_dir, uint64 va, uint64 size, int free) {
   // (use free_page() defined in pmm.c) the physical pages. lastly, invalidate the PTEs.
   // as naive_free reclaims only one page at a time, you only need to consider one page
   // to make user/app_naive_malloc to behave correctly.
-  pagetable_t pt = page_dir;
-  pte_t *pte;
-  for(int level = 2; level >= 0; level--) {
-    pte = pt + PX(level, va);
-    if(((*pte) & PTE_V) == 0) {
-      return;
+
+  for(uint64 first = ROUNDDOWN(va, PGSIZE), last = ROUNDDOWN(va + size - 1, PGSIZE); first <= last; first += PGSIZE) {
+    pagetable_t pt = page_dir;
+    pte_t *pte;
+
+    for(int level = 2; level >= 0; level--) {
+      pte = pt + PX(level, first);
+      if(((*pte) & PTE_V) == 0) {
+        panic("unmap invalid addr!\n");
+        return;
+      }
+      pt = (pagetable_t)PTE2PA(*pte);
     }
-    pt = (pagetable_t)PTE2PA(*pte);
+    *pte &= ~PTE_V;
+    if(free) {
+      free_page((void *)PTE2PA(*pte));
+    }
   }
-  
-  *pte &= ~PTE_V;
-  if(free) {
-    free_page((void *)PTE2PA(*pte));
-  }
+
 }
 
 //

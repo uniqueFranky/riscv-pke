@@ -106,7 +106,6 @@ void smode_trap_handler(void) {
   // if the cause of trap is syscall from user application.
   // read_csr() and CAUSE_USER_ECALL are macros defined in kernel/riscv.h
   uint64 cause = read_csr(scause);
-
   // use switch-case instead of if-else, as there are many cases since lab2_3.
   switch (cause) {
     case CAUSE_USER_ECALL:
@@ -131,5 +130,6 @@ void smode_trap_handler(void) {
   }
 
   // continue (come back to) the execution of current process.
+  // sprint("pa for code segment in smode handler = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
   switch_to(current);
 }

@@ -40,7 +40,8 @@ static void *elf_process_alloc_mb(process *p, uint64 elf_pa, uint64 elf_va, uint
   void *pa = alloc_page();
   if (pa == 0) panic("uvmalloc mem alloc falied\n");
 
-  memset((void *)pa, 0, PGSIZE);
+  // why !!!!!!!!!!
+  // memset((void *)pa, 0, PGSIZE);
   user_vm_map(p->pagetable, elf_va, PGSIZE, (uint64)pa,
          prot_to_type(PROT_WRITE | PROT_READ | PROT_EXEC, 1));
   return pa;
@@ -227,10 +228,10 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
           }
         }
       }
-    } else
+    } else {
       panic( "unknown program segment encountered, segment flag:%d.\n", ph_addr.flags );
+    }
   }
-
   // clear the heap segment
   for(int j = 0; j < PGSIZE / sizeof(mapped_region); j++) {
     if(p->mapped_info[j].seg_type == HEAP_SEGMENT) {
@@ -263,7 +264,6 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   }
 
   elf_substitute(p, ctx, elf_file);
-
   // entry (virtual, also physical in lab1_x) address
   p->trapframe->epc = elfloader.ehdr.entry;
 

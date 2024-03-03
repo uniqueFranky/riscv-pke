@@ -229,6 +229,7 @@ ssize_t sys_user_exec(char *path, char *param) {
   char param_new[100];
   strcpy(param_new, param_pa);
   substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
+  // sprint("pa for code exec before = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
 
   
   // write exec parameter
@@ -242,6 +243,7 @@ ssize_t sys_user_exec(char *path, char *param) {
   char *argv_0_pa = (char *)user_va_to_pa(current->pagetable, (void *)argv_0_va);
   // cannot use param_pa, because the original data segment has been substituted
   strcpy(argv_0_pa, param_new);
+  // sprint("pa for code exec after = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
 
   current->trapframe->regs.a0 = 1;
   current->trapframe->regs.a1 = (uint64)argv_va;
