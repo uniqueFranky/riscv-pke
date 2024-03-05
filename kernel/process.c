@@ -242,6 +242,8 @@ int do_fork( process* parent)
         // DO NOT COPY THE PHYSICAL PAGES, JUST MAP THEM.
         user_vm_map(child->pagetable, parent->mapped_info[i].va, parent->mapped_info[i].npages * PGSIZE, 
           lookup_pa(parent->pagetable, parent->mapped_info[i].va), prot_to_type(PROT_EXEC | PROT_READ, 1));
+        sprint("do_fork map code segment at pa:%lx of parent to child at va:%lx.\n", lookup_pa(parent->pagetable, parent->mapped_info[i].va), parent->mapped_info[i].va);
+
         // after mapping, register the vm region (do not delete codes below!)
         child->mapped_info[child->total_mapped_region].va = parent->mapped_info[i].va;
         child->mapped_info[child->total_mapped_region].npages =
