@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "elf.h"
+#include "riscv.h"
 #include "util/types.h"
 #include "syscall.h"
 #include "string.h"
@@ -226,7 +227,8 @@ ssize_t sys_user_unlink(char * vfn){
 ssize_t sys_user_exec(char *path, char *param) {
   char *path_pa = (char *)user_va_to_pa(current->pagetable, (void *)path);
   char *param_pa = (char *)user_va_to_pa(current->pagetable, (void *)param);
-  char param_new[100];
+  char *param_new = alloc_page();
+  // char param_new[100];
   strcpy(param_new, param_pa);
   substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
   // sprint("pa for code exec before = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
@@ -244,10 +246,26 @@ ssize_t sys_user_exec(char *path, char *param) {
   // cannot use param_pa, because the original data segment has been substituted
   strcpy(argv_0_pa, param_new);
   // sprint("pa for code exec after = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
-
+  free_page((void *)param_new);
   current->trapframe->regs.a0 = 1;
   current->trapframe->regs.a1 = (uint64)argv_va;
 
+  return 0;
+}
+
+ssize_t sys_user_read_cwd(char *dst) {
+  char *pa = (char *)user_va_to_pa((pagetable_t)(current->pagetable), (void *)dst);
+  return do_rcwd(pa);
+}
+
+ssize_t sys_user_change_cwd(char *dst) {
+  char *pa = (char *)user_va_to_pa((pagetable_t)(current->pagetable), (void *)dst);
+  return do_ccwd(pa);
+}
+
+ssize_t sys_user_scan(char *dst) {
+  char *pa = (char *)user_va_to_pa((pagetable_t)(current->pagetable), (void *)dst);
+  spike_file_read(stdin, pa, PGSIZE);
   return 0;
 }
 
@@ -303,6 +321,12 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, long a6, l
       return sys_user_wait(a1);
     case SYS_user_exec:
       return sys_user_exec((char *)a1, (char *)a2);
+    case SYS_user_rcwd:
+      return sys_user_read_cwd((char *)a1);
+    case SYS_user_ccwd:
+      return sys_user_change_cwd((char *)a1);
+    case SYS_user_scan:
+      return sys_user_scan((char *)a1);
     default:
       panic("Unknown syscall %ld \n", a0);
   }

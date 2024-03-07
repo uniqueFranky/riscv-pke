@@ -175,3 +175,21 @@ int wait(int pid) {
 int exec(const char *path, const char *param) {
   return do_user_call(SYS_user_exec, (uint64)path, (uint64)param, 0, 0, 0, 0, 0);
 }
+
+//
+// lib call to read present working directory (pwd)
+//
+int read_cwd(char *path) {
+  return do_user_call(SYS_user_rcwd, (uint64)path, 0, 0, 0, 0, 0, 0);
+}
+
+//
+// lib call to change pwd
+//
+int change_cwd(const char *path) {
+  return do_user_call(SYS_user_ccwd, (uint64)path, 0, 0, 0, 0, 0, 0);
+}
+
+void scanu(char *dest) {
+  do_user_call(SYS_user_scan, (uint64)dest, 0, 0, 0, 0, 0, 0);
+}

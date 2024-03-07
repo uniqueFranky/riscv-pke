@@ -36,4 +36,7 @@ int unlink_u(const char *fn);
 int wait(int pid);
 int exec(const char *path, const char *param);
 
+int read_cwd(char *path);
+int change_cwd(const char *path);
+void scanu(char *dest);
 #endif
