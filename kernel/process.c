@@ -29,8 +29,40 @@ extern char trap_sec_start[];
 // process pool. added @lab3_1
 process procs[NPROC];
 
+#define NSEM PROC_MAX_SEM_NUM * 2
+semaphore *sem_array[PROC_MAX_SEM_NUM];
+
 // current points to the currently running user-mode application.
 process* current = NULL;
+
+semaphore sem_pool[NSEM];
+semaphore *free_sem_queue_head;
+
+semaphore *alloc_semaphore() {
+  if(NULL == free_sem_queue_head) {
+    panic("insufficient semphore!");
+  }
+  semaphore *ret = free_sem_queue_head;
+  free_sem_queue_head = free_sem_queue_head->queue_next;
+  ret->queue_next = NULL;
+  ret->waiting_queue = NULL;
+  return ret;
+}
+
+void free_semaphore(semaphore *sem) {
+  sem->waiting_queue = NULL;
+  sem->queue_next = free_sem_queue_head;
+  free_sem_queue_head = sem;
+}
+
+void init_sem_pool() {
+  free_sem_queue_head = NULL;
+  for(int i = 0; i < NSEM; i++) {
+    sem_pool[i].queue_next = free_sem_queue_head;
+    free_sem_queue_head = &sem_pool[i];
+  }
+}
+
 
 //
 // switch to a user-mode process

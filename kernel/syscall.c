@@ -269,6 +269,46 @@ ssize_t sys_user_scan(char *dst) {
   return 0;
 }
 
+uint64 sys_user_sem_new(int iv) {
+  if(iv < 0) {
+    panic("negative inital sem value!");
+  }
+  semaphore *sem = alloc_semaphore();
+  sem->value = iv;
+  for(int i = 0; i < PROC_MAX_SEM_NUM; i++) {
+    if(NULL == sem_array[i]) {
+      sem_array[i] = sem;
+      return i;
+    }
+  }
+  return -1;
+}
+
+uint64 sys_user_sem_P(int semid) {
+  semaphore *sem = sem_array[semid];
+  if(--sem->value < 0) {
+    current->status = BLOCKED;
+    current->queue_next = sem->waiting_queue;
+    sem->waiting_queue = current;
+    schedule();
+  }
+  return 0;
+}
+
+uint64 sys_user_sem_V(int semid) {
+  semaphore *sem = sem_array[semid];
+  if(++sem->value <= 0) { // wakeup a waiting process
+    if(NULL == sem->waiting_queue) {
+      panic("waiting queue is empty!");
+    }
+    process *p = sem->waiting_queue;
+    sem->waiting_queue = sem->waiting_queue->queue_next;
+    insert_to_ready_queue(p);
+  }
+  return 0;
+}
+
+
 //
 // [a0]: the syscall number; [a1] ... [a7]: arguments to the syscalls.
 // returns the code of success, (e.g., 0 means success, fail for otherwise)
@@ -327,6 +367,12 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, long a6, l
       return sys_user_change_cwd((char *)a1);
     case SYS_user_scan:
       return sys_user_scan((char *)a1);
+    case SYS_user_sem_new:
+      return sys_user_sem_new(a1);
+    case SYS_user_sem_P:
+      return sys_user_sem_P(a1);
+    case SYS_user_sem_V:
+      return sys_user_sem_V(a1);
     default:
       panic("Unknown syscall %ld \n", a0);
   }

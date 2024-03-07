@@ -1,5 +1,6 @@
 #ifndef _PROC_H_
 #define _PROC_H_
+#define PROC_MAX_SEM_NUM 16
 
 #include "riscv.h"
 #include "proc_file.h"
@@ -62,6 +63,17 @@ typedef struct process_heap_manager {
   uint32 free_pages_count;
 }process_heap_manager;
 
+struct process;
+
+typedef struct semaphore_t {
+  int value;
+  struct process_t *waiting_queue;
+  struct semaphore_t *queue_next;
+} semaphore;
+
+semaphore *alloc_semaphore();
+void free_semaphore(semaphore *sem);
+
 // the extremely simple definition of process, used for begining labs of PKE
 typedef struct process_t {
   // pointing to the stack used in trap handling.
@@ -94,6 +106,10 @@ typedef struct process_t {
   // file system. added @lab4_1
   proc_file_management *pfiles;
 }process;
+
+extern semaphore *sem_array[PROC_MAX_SEM_NUM];
+
+void init_sem_pool();
 
 // switch to run user app
 void switch_to(process*);

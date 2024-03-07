@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
     scanu(buf);
     printu("%s\n", buf);
   }
-  
+
   naive_free(buf);
   exit(0);
   return 0;

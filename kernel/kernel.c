@@ -103,6 +103,8 @@ int s_start(void) {
   // added @lab3_1
   init_proc_pool();
 
+  init_sem_pool();
+
   // init file system, added @lab4_1
   fs_init();
 

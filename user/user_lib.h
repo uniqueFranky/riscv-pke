@@ -39,4 +39,9 @@ int exec(const char *path, const char *param);
 int read_cwd(char *path);
 int change_cwd(const char *path);
 void scanu(char *dest);
+
+int sem_new(int initial_value);
+void sem_P(int sem);
+void sem_V(int sem);
+
 #endif

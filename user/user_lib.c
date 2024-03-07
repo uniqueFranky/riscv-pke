@@ -193,3 +193,15 @@ int change_cwd(const char *path) {
 void scanu(char *dest) {
   do_user_call(SYS_user_scan, (uint64)dest, 0, 0, 0, 0, 0, 0);
 }
+
+int sem_new(int iv) {
+  return do_user_call(SYS_user_sem_new, iv, 0, 0, 0, 0, 0, 0);
+}
+
+void sem_P(int sem) {
+  do_user_call(SYS_user_sem_P, sem, 0, 0, 0, 0, 0, 0);
+}
+
+void sem_V(int sem) {
+  do_user_call(SYS_user_sem_V, sem, 0, 0, 0, 0, 0, 0);
+}
