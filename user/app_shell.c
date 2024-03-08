@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
 
   read_u(fd, buf, MAXBUF);
   close(fd);
-  char *command = naive_malloc();
-  char *para = naive_malloc();
+  char *command = better_malloc(1024);
+  char *para = better_malloc(1024);
   int start = 0;
   while (1)
   {

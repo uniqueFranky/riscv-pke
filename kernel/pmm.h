@@ -1,5 +1,6 @@
 #ifndef _PMM_H_
 #define _PMM_H_
+#include "process.h"
 #include "util/types.h"
 // Initialize phisical memeory manager
 void pmm_init();
@@ -7,6 +8,7 @@ void pmm_init();
 void* alloc_page();
 // Free an allocated page
 void free_page(void* pa);
+
 typedef struct memory_descriptor_t {
     uint64 start_pa;
     uint64 size;
@@ -24,4 +26,5 @@ void free_memory_descriptor(memory_descriptor *md);
 void insert_into_md_list(memory_descriptor **head, memory_descriptor *md, int merge);
 void remove_from_md_list(memory_descriptor **head, memory_descriptor *md);
 int get_page_id_by_start_pa(uint64 pa);
+void copy_md_from_parent(memory_descriptor *parent_md, memory_descriptor *child_md, process *parent, process *child, int insert);
 #endif

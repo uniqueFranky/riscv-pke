@@ -5,6 +5,7 @@
 #include "util/string.h"
 #include "memlayout.h"
 #include "process.h"
+#include "vmm.h"
 #include "spike_interface/spike_utils.h"
 
 // _end is defined in kernel/kernel.lds, it marks the ending (virtual) address of PKE kernel
@@ -96,6 +97,19 @@ void remove_from_md_list(memory_descriptor **head, memory_descriptor *md) {
     if(NULL != now->next) {
       now->next = now->next->next;
     }
+  }
+}
+
+void copy_md_from_parent(memory_descriptor *parent_md, memory_descriptor *child_md, process *parent, process *child, int insert) {
+  *child_md = *parent_md;
+  child_md->page_start_pa = lookup_pa(child->pagetable, child_md->page_start_va);
+  child_md->start_pa = parent_md->start_pa - parent_md->page_start_pa + child_md->page_start_pa;
+  if(insert) {
+    insert_into_md_list(&child->free_md_list_head, child_md, 1);
+  }
+  if(NULL != parent_md->succ) {
+    memory_descriptor *child_succ = alloc_memory_descriptor();
+    copy_md_from_parent(parent_md->succ, child_succ, parent, child, 0);
   }
 }
 

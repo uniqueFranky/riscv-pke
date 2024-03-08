@@ -4,7 +4,6 @@
 #define PROC_MAX_PAGE_NUM 16
 #include "riscv.h"
 #include "proc_file.h"
-#include "pmm.h"
 typedef struct trapframe_t {
   // space to store context (all common registers)
   /* offset:0   */ riscv_regs regs;
@@ -70,8 +69,6 @@ typedef struct process_heap_manager {
   uint32 free_pages_count;
 }process_heap_manager;
 
-struct process;
-
 typedef struct semaphore_t {
   int value;
   struct process_t *waiting_queue;
@@ -116,8 +113,8 @@ typedef struct process_t {
   // for better malloc
   uint64 user_free_va;
   page_control_block page_cb[PROC_MAX_PAGE_NUM];
-  memory_descriptor *free_md_list_head;
-  memory_descriptor *allocated_md_list_head;
+  struct memory_descriptor_t *free_md_list_head;
+  struct memory_descriptor_t *allocated_md_list_head;
 }process;
 
 extern semaphore *sem_array[PROC_MAX_SEM_NUM];

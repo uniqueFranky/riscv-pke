@@ -4,6 +4,8 @@
  */
 
 #include "elf.h"
+#include "memlayout.h"
+#include "process.h"
 #include "string.h"
 #include "riscv.h"
 #include "vmm.h"
@@ -235,11 +237,31 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
   // clear the heap segment
   for(int j = 0; j < PGSIZE / sizeof(mapped_region); j++) {
     if(p->mapped_info[j].seg_type == HEAP_SEGMENT) {
-      for(uint64 va = p->user_heap.heap_bottom; va < p->user_heap.heap_top; va += PGSIZE) {
-        user_vm_unmap(p->pagetable, va, PGSIZE, 1); // free the page at the same time
-      }
       p->mapped_info[j].npages = 0;
-      p->user_heap.heap_top = p->user_heap.heap_bottom;
+    }
+    p->user_free_va = USER_FREE_ADDRESS_START;
+    for(int k = 0; k < PROC_MAX_PAGE_NUM; k++) {
+      if(p->page_cb[k].valid) {
+        p->page_cb[k].valid = 0;
+        user_vm_unmap(p->pagetable, p->page_cb[k].start_va, PGSIZE, 1);
+      }
+    }
+    memory_descriptor *md = p->free_md_list_head;
+    while(NULL != md) {
+      memory_descriptor *nxt = md->next;
+      free_memory_descriptor(md);
+      md = nxt;
+    }
+    md = p->allocated_md_list_head;
+    while(NULL != md) {
+      memory_descriptor *nxt = md->next;
+      memory_descriptor *suc = md->succ;
+      while(NULL != suc) {
+        free_memory_descriptor(suc);
+        suc = suc->succ;
+      }
+      free_memory_descriptor(md);
+      md = nxt;
     }
   }
 }
