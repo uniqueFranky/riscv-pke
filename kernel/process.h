@@ -1,10 +1,10 @@
 #ifndef _PROC_H_
 #define _PROC_H_
 #define PROC_MAX_SEM_NUM 16
-
+#define PROC_MAX_PAGE_NUM 16
 #include "riscv.h"
 #include "proc_file.h"
-
+#include "pmm.h"
 typedef struct trapframe_t {
   // space to store context (all common registers)
   /* offset:0   */ riscv_regs regs;
@@ -19,6 +19,13 @@ typedef struct trapframe_t {
   // kernel page table. added @lab2_1
   /* offset:272 */ uint64 kernel_satp;
 }trapframe;
+
+typedef struct page_control_block_t {
+    int valid;
+    int allocated_md_num;
+    uint64 start_pa;
+    uint64 start_va;
+} page_control_block;
 
 // riscv-pke kernel supports at most 32 processes
 #define NPROC 32
@@ -105,6 +112,12 @@ typedef struct process_t {
 
   // file system. added @lab4_1
   proc_file_management *pfiles;
+
+  // for better malloc
+  uint64 user_free_va;
+  page_control_block page_cb[PROC_MAX_PAGE_NUM];
+  memory_descriptor *free_md_list_head;
+  memory_descriptor *allocated_md_list_head;
 }process;
 
 extern semaphore *sem_array[PROC_MAX_SEM_NUM];

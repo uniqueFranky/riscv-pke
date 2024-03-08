@@ -193,7 +193,6 @@ struct file *vfs_open(const char *path, int flags) {
     default:
       panic("fs_open: invalid open flags!\n");
   }
-  sprint("before alloc vfs file\n");
   struct file *file = alloc_vfs_file(file_dentry, readable, writable, 0);
 
   // additional open operations for a specific file system

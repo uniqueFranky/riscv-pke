@@ -76,6 +76,13 @@ process* load_user_program() {
   if (!argc) panic("You need to specify the application program!\n");
 
   load_bincode_from_host_elf(proc, arg_bug_msg.argv[0]);
+  // init page control blocks for proc
+  for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
+       proc->page_cb[i].valid = 0;
+  }
+  proc->allocated_md_list_head = NULL;
+  proc->free_md_list_head = NULL;
+  proc->user_free_va = USER_FREE_ADDRESS_START;
   return proc;
 }
 

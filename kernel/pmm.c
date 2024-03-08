@@ -4,6 +4,7 @@
 #include "config.h"
 #include "util/string.h"
 #include "memlayout.h"
+#include "process.h"
 #include "spike_interface/spike_utils.h"
 
 // _end is defined in kernel/kernel.lds, it marks the ending (virtual) address of PKE kernel
@@ -18,6 +19,85 @@ static uint64 free_mem_end_addr;    //end address of free memory (not included)
 typedef struct node {
   struct node *next;
 } list_node;
+
+memory_descriptor memory_descriptor_pool[PGSIZE / sizeof(memory_descriptor)];
+
+list_node free_md_list;
+
+int get_page_id_by_start_pa(uint64 pa) {
+  process *p = current;
+  for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
+    if(p->page_cb[i].valid && p->page_cb[i].start_pa == pa) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+void free_memory_descriptor(memory_descriptor *md) {
+  ((list_node *)md)->next = free_md_list.next;
+  free_md_list.next = (list_node *)md;
+}
+
+memory_descriptor *alloc_memory_descriptor() {
+  if(NULL == free_md_list.next) {
+    panic("insufficient memory descriptor!");
+  }
+  memory_descriptor *ret = (memory_descriptor *)free_md_list.next;
+  free_md_list.next = (free_md_list.next)->next;
+  return ret;
+}
+
+void insert_into_md_list(memory_descriptor **head, memory_descriptor *md, int merge) {
+
+  memory_descriptor *prev;
+
+  // insert into list order by start_pa
+  if(NULL == *head || (*head)->start_pa > md->start_pa) {
+    md->next = *head;
+    *head = md;
+    prev = NULL;
+  } else {
+    memory_descriptor *now = *head;
+    while(NULL != now->next && now->next->start_pa < md->start_pa) {
+      now = now->next;
+    }
+    md->next = now->next;
+    now->next = md;
+    prev = now;
+  }
+
+  // try to merge continous areas
+  // at most merge the md before and after the inserted one
+  if(merge) {
+    if(NULL != md->next && md->start_pa + md->size == md->next->start_pa 
+      && md->page_start_pa == md->next->page_start_pa) { // must in the same page
+        md->size += md->next->size;
+        free_memory_descriptor(md->next);
+        md->next = md->next->next;
+      }
+
+      if(NULL != prev && prev->start_pa + prev->size == md->start_pa
+      && prev->page_start_pa == md->page_start_pa) {
+        prev->size += md->size;
+        free_memory_descriptor(md);
+        prev->next = md->next;
+      }
+  }
+}
+void remove_from_md_list(memory_descriptor **head, memory_descriptor *md) {
+  if(*head == md) {
+    *head = (*head)->next;
+  } else {
+    memory_descriptor *now = *head;
+    while(NULL != now->next && md != now->next) {
+      now = now->next;
+    }
+    if(NULL != now->next) {
+      now->next = now->next->next;
+    }
+  }
+}
 
 // g_free_mem_list is the head of the list of free physical memory pages
 static list_node g_free_mem_list;
@@ -85,4 +165,10 @@ void pmm_init() {
   sprint("kernel memory manager is initializing ...\n");
   // create the list of free pages
   create_freepage_list(free_mem_start_addr, free_mem_end_addr);
+
+  // init free_md_list
+  free_md_list.next = NULL;
+  for(int i = 0; i < PGSIZE / sizeof(memory_descriptor); i++) {
+    free_memory_descriptor(memory_descriptor_pool + i);
+  }
 }

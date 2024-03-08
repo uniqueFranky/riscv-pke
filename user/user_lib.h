@@ -44,4 +44,7 @@ int sem_new(int initial_value);
 void sem_P(int sem);
 void sem_V(int sem);
 
+void* better_malloc(int n);
+void better_free(void* va);
+
 #endif
