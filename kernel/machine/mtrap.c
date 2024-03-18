@@ -1,18 +1,37 @@
 #include "kernel/riscv.h"
 #include "kernel/process.h"
 #include "spike_interface/spike_utils.h"
+#include "kernel/elf.h"
 
-static void handle_instruction_access_fault() { panic("Instruction access fault!"); }
+static void handle_instruction_access_fault() { 
+  read_runtime_error_source_code();
+  panic("Instruction access fault!"); 
+}
 
-static void handle_load_access_fault() { panic("Load access fault!"); }
+static void handle_load_access_fault() { 
+  read_runtime_error_source_code();
+  panic("Load access fault!"); 
+}
 
-static void handle_store_access_fault() { panic("Store/AMO access fault!"); }
+static void handle_store_access_fault() { 
+  read_runtime_error_source_code();
+  panic("Store/AMO access fault!");
+}
 
-static void handle_illegal_instruction() { panic("Illegal instruction!"); }
+static void handle_illegal_instruction() { 
+  read_runtime_error_source_code();
+  panic("Illegal instruction!"); 
+}
 
-static void handle_misaligned_load() { panic("Misaligned Load!"); }
+static void handle_misaligned_load() { 
+  read_runtime_error_source_code();
+  panic("Misaligned Load!"); 
+}
 
-static void handle_misaligned_store() { panic("Misaligned AMO!"); }
+static void handle_misaligned_store() { 
+  read_runtime_error_source_code();
+  panic("Misaligned AMO!"); 
+}
 
 // added @lab1_3
 static void handle_timer() {
