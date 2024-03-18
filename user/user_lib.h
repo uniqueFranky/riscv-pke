@@ -45,4 +45,6 @@ void sem_V(int sem);
 void* better_malloc(int n);
 void better_free(void* va);
 
+int print_backtrace(int depth);
+
 #endif

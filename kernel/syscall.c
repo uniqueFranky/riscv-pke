@@ -440,6 +440,29 @@ uint64 sys_user_sem_V(int semid) {
   return 0;
 }
 
+uint64 *get_raw_ptr(uint64 addr) {
+  return user_va_to_pa(current->pagetable, (void *)addr);
+}
+
+ssize_t sys_user_backtrace(long depth) {
+  riscv_regs regs = current->trapframe->regs;
+  elf_ctx *ctx = get_elf();
+  uint64 fp = regs.s0;
+
+  
+  fp = *get_raw_ptr(fp - 8); // 跳过 do_user_call的栈帧，do_user_call是叶子函数，fp-8为之前保存的fp值
+
+  while(depth--) {
+    const char *name = get_symbol_name(ctx, *get_raw_ptr(fp - 8)); // 非叶子函数，fp-8为ra的保存值
+    fp = *get_raw_ptr(fp - 16); // 非叶子函数，fp-16为fp的保存值
+    sprint("%s\n", name);
+    if(0 == strcmp("main", name)) {
+      return 0;
+    }
+  }
+  return 0;
+}
+
 
 //
 // [a0]: the syscall number; [a1] ... [a7]: arguments to the syscalls.
@@ -505,6 +528,8 @@ long do_syscall(long a0, long a1, long a2, long a3, long a4, long a5, long a6, l
       return sys_user_sem_P(a1);
     case SYS_user_sem_V:
       return sys_user_sem_V(a1);
+    case SYS_user_backtrace:
+      return sys_user_backtrace(a1);
     default:
       panic("Unknown syscall %ld \n", a0);
   }

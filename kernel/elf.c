@@ -18,6 +18,9 @@ typedef struct elf_info_t {
   process *p;
 } elf_info;
 
+elf_ctx elf_for_pid[NPROC];
+elf_info elf_info_for_pid[NPROC];
+
 //
 // the implementation of allocater. allocates memory space for later segment loading.
 // this allocater is heavily modified @lab2_1, where we do NOT work in bare mode.
@@ -147,9 +150,12 @@ void load_bincode_from_host_elf(process *p, char *filename) {
 
   // entry (virtual, also physical in lab1_x) address
   p->trapframe->epc = elfloader.ehdr.entry;
+  elf_for_pid[p->pid] = elfloader;
+  elf_info_for_pid[p->pid] = info;
+  elf_for_pid[p->pid].info = &elf_info_for_pid[p->pid];
 
-  // close the vfs file
-  vfs_close( info.f );
+  // do not close the vfs file, for backtrace
+  // vfs_close( info.f );
 
   sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
 }
@@ -270,7 +276,12 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   
   //elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
   elf_ctx elfloader;
-  elf_ctx *ctx = &elfloader;
+  elf_ctx *ctx = &elfloader;  
+
+  elf_info info;
+  info.f = vfs_open(path, O_RDONLY);
+  info.p = p;
+  elf_info_for_pid[p->pid] = info;
   sprint("Application: %s\n", path); 
   struct file *elf_file = vfs_open(path, O_RDONLY);
 
@@ -291,6 +302,72 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
 
   // close the vfs file
   vfs_close(elf_file);
-
+  elf_for_pid[p->pid] = elfloader;
+  elf_for_pid[p->pid].info = &elf_info_for_pid[p->pid];
   sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
+}
+
+elf_ctx *get_elf() {
+  return &elf_for_pid[current->pid];
+}
+
+elf_section_header read_elf_section_header(elf_ctx *ctx, int idx) {
+  elf_section_header sh;
+  elf_fpread(ctx, &sh, sizeof(elf_section_header), ctx->ehdr.shoff + sizeof(elf_section_header) * idx);
+  return sh;
+}
+
+elf_section_header read_elf_section_header_with_name(elf_ctx *ctx, const char *name) {
+
+  elf_section_header shstrtab;
+  char *buf = alloc_page();
+
+  shstrtab = read_elf_section_header(ctx, ctx->ehdr.shstrndx);
+  read_elf_into_buffer(ctx, buf, shstrtab.sh_offset, shstrtab.sh_size);
+
+  elf_section_header header;
+  for(int i = 0; i < ctx->ehdr.shnum; i++) {
+    header = read_elf_section_header(ctx, i);
+    if(0 == strcmp(buf + header.sh_name, name)) {
+      free_page(buf);
+      return header;
+    }
+  }
+  panic("no corresponding section name");
+}
+
+void read_elf_into_buffer(elf_ctx *ctx, void *dst, int offset, int size) {
+  elf_fpread(ctx, dst, size, offset);
+}
+
+int symcmp(const void *a, const void *b) {
+  const elf_sym *sym1 = a;
+  const elf_sym *sym2 = b;
+  return sym1->st_value - sym2->st_value;
+}
+
+const char *get_symbol_name(elf_ctx *ctx, uint64 addr) {
+  elf_section_header symtab;
+  elf_section_header strtab;
+  elf_sym *symbols = alloc_page();
+  char *strs = alloc_page();
+  int symnum = 0;
+  symtab = read_elf_section_header_with_name(ctx, ".symtab");
+  strtab = read_elf_section_header_with_name(ctx, ".strtab");
+  int now = 0;
+  while(now < symtab.sh_size) {
+    read_elf_into_buffer(ctx, symbols + symnum, symtab.sh_offset + symnum * sizeof(elf_sym), sizeof(elf_sym));
+    symnum++;
+    now += sizeof(elf_sym);
+  }
+  read_elf_into_buffer(ctx, strs, strtab.sh_offset, strtab.sh_size);
+  
+  for(int i = 0; i < symnum; i++) {
+    if(addr >= symbols[i].st_value && addr < symbols[i].st_value + symbols[i].st_size) {
+      free_page(symbols);
+      free_page(strs);
+      return strs + symbols[i].st_name;
+    }
+  }
+  panic("no such symbol");
 }
