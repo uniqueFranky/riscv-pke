@@ -8,45 +8,45 @@
 #include "util/types.h"
 
 int main(int argc, char *argv[]) {
-  printu("\n======== Shell Start ========\n\n");
-  int fd;
-  int MAXBUF = 1024;
-  char buf[MAXBUF];
-  char *token;
-  char delim[3] = " \n";
-  fd = open("/shellrc", O_RDONLY);
-
-  read_u(fd, buf, MAXBUF);
-  close(fd);
+  char *input = better_malloc(1024);
+  char *cwd = better_malloc(1024);
   char *command = better_malloc(1024);
-  char *para = better_malloc(1024);
-  int start = 0;
+  char *param = better_malloc(1024);
   while (1)
   {
-    if(!start) {
-      token = strtok(buf, delim);
-      start = 1;
+    read_cwd(cwd);
+    printu("%s> ", cwd);
+    memset(input, 0, 1024);
+    scanu(input);
+    input[strlen(input) - 1] = '\0'; // omit the \n
+    int sep = 0;
+    while(sep < strlen(input) && input[sep] != ' ') {
+      command[sep] = input[sep];
+      sep++;
     }
-    else 
-      token = strtok(NULL, delim);
-    strcpy(command, token);
-    token = strtok(NULL, delim);
-    strcpy(para, token);
-    if(strcmp(command, "END") == 0 && strcmp(para, "END") == 0)
-      break;
-    printu("Next command: %s %s\n\n", command, para);
-    printu("==========Command Start============\n\n");
-    int pid = fork();
-    if(pid == 0) {
-      int ret = exec(command, para);
-      if (ret == -1)
-      printu("exec failed!\n");
+    command[sep] = '\0';
+    if(sep + 1 < strlen(input)) {
+      strcpy(param, input + sep + 1);
+    } else {
+      strcpy(param, "");
     }
-    else
-    {
-      wait(pid);
-      printu("==========Command End============\n\n");
+
+    if(0 == strcmp(command, "cd")) { // syscalls
+      change_cwd(param);
+    } else { // apps
+      int pid = fork();
+      if(pid == 0) {
+        int ret = exec(command, param);
+        if (ret == -1)
+        printu("exec failed!\n");
+      }
+      else
+      {
+        wait(pid);
+      }
     }
+
+    
   }
   exit(0);
   return 0;
