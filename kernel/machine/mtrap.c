@@ -73,8 +73,8 @@ void handle_mtrap() {
       break;
 
     default:
-      sprint("machine trap(): unexpected mscause %p\n", mcause);
-      sprint("            mepc=%p mtval=%p\n", read_csr(mepc), read_csr(mtval));
+      //sprint("machine trap(): unexpected mscause %p\n", mcause);
+      //sprint("            mepc=%p mtval=%p\n", read_csr(mepc), read_csr(mtval));
       panic( "unexpected exception happened in M-mode.\n" );
       break;
   }
