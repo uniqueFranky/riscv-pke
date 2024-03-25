@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <errno.h>
+#include <string.h>
 
 #include "elf.h"
 #include "riscv.h"
@@ -13,6 +14,7 @@
 #include "process.h"
 #include "util/functions.h"
 #include "pmm.h"
+#include "vfs.h"
 #include "vmm.h"
 #include "sched.h"
 #include "proc_file.h"
@@ -362,7 +364,23 @@ ssize_t sys_user_exec(char *path, char *param) {
   char *param_new = alloc_page();
   // char param_new[100];
   strcpy(param_new, param_pa);
-  substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
+
+  // enable PATH environment variable
+  char *try_with_shell_path = alloc_page();
+  char *missing_name = alloc_page();
+  strcpy(try_with_shell_path, "/bin/");
+  int len = strlen(try_with_shell_path);
+  for(int i = 0; i < strlen(path_pa); i++) {
+    try_with_shell_path[len++] = path_pa[i];
+  }
+  try_with_shell_path[len] = '\0';
+  struct dentry *parent = vfs_root_dentry;
+  if(NULL != lookup_final_dentry(try_with_shell_path, &parent, missing_name)) {
+    substitute_bincode_from_vfs_elf(current, try_with_shell_path, param_pa);
+  } else {
+    substitute_bincode_from_vfs_elf(current, path_pa, param_pa);
+  }
+
   // sprint("pa for code exec before = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
 
   
@@ -379,9 +397,16 @@ ssize_t sys_user_exec(char *path, char *param) {
   strcpy(argv_0_pa, param_new);
   // sprint("pa for code exec after = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
   free_page((void *)param_new);
+  free_page(try_with_shell_path);
+  free_page(missing_name);
   current->trapframe->regs.a0 = 1;
   current->trapframe->regs.a1 = (uint64)argv_va;
 
+  // inherits the work space
+  if(current->parent != NULL) {
+    current->pfiles->cwd = current->parent->pfiles->cwd;
+  }
+  
   return 0;
 }
 

@@ -283,8 +283,7 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   info.p = p;
   elf_info_for_pid[p->pid] = info;
   sprint("Application: %s\n", path); 
-  struct file *elf_file = vfs_open(path, O_RDONLY);
-
+  struct file *elf_file = info.f;
   // read the elf header
   uint64 bytes_read = vfs_read(elf_file, (char *)&ctx->ehdr, sizeof(ctx->ehdr));
   if (bytes_read != sizeof(ctx->ehdr)) {
