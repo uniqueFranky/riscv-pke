@@ -150,7 +150,7 @@ struct file *vfs_open(const char *path, int flags) {
 
       // a missing directory exists in the path
       if (strcmp(miss_name, basename) != 0) {
-        //sprint("vfs_open: cannot create file in a non-exist directory!\n");
+        sprint("vfs_open: cannot create file in a non-exist directory!\n");
         return NULL;
       }
 
@@ -164,13 +164,13 @@ struct file *vfs_open(const char *path, int flags) {
       hash_put_dentry(file_dentry);
       hash_put_vinode(new_inode); 
     } else {
-      //sprint("vfs_open: cannot find the file!\n");
+      sprint("vfs_open: cannot find the file!\n");
       return NULL;
     }
   }
 
   if (file_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_open: cannot open a directory!\n");
+    sprint("vfs_open: cannot open a directory!\n");
     return NULL;
   }
 
@@ -200,7 +200,7 @@ struct file *vfs_open(const char *path, int flags) {
   if (file_dentry->dentry_inode->i_ops->viop_hook_open) {
     if (file_dentry->dentry_inode->i_ops->
         viop_hook_open(file_dentry->dentry_inode, file_dentry) < 0) {
-      //sprint("vfs_open: hook_open failed!\n");
+      sprint("vfs_open: hook_open failed!\n");
     }
   }
 
@@ -213,11 +213,11 @@ struct file *vfs_open(const char *path, int flags) {
 //
 ssize_t vfs_read(struct file *file, char *buf, size_t count) {
   if (!file->readable) {
-    //sprint("vfs_read: file is not readable!\n");
+    sprint("vfs_read: file is not readable!\n");
     return -1;
   }
   if (file->f_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_read: cannot read a directory!\n");
+    sprint("vfs_read: cannot read a directory!\n");
     return -1;
   }
   // actual reading.
@@ -230,11 +230,11 @@ ssize_t vfs_read(struct file *file, char *buf, size_t count) {
 //
 ssize_t vfs_write(struct file *file, const char *buf, size_t count) {
   if (!file->writable) {
-    //sprint("vfs_write: file is not writable!\n");
+    sprint("vfs_write: file is not writable!\n");
     return -1;
   }
   if (file->f_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_read: cannot write a directory!\n");
+    sprint("vfs_read: cannot write a directory!\n");
     return -1;
   }
   // actual writing.
@@ -247,12 +247,12 @@ ssize_t vfs_write(struct file *file, const char *buf, size_t count) {
 //
 ssize_t vfs_lseek(struct file *file, ssize_t offset, int whence) {
   if (file->f_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_read: cannot seek a directory!\n");
+    sprint("vfs_read: cannot seek a directory!\n");
     return -1;
   }
 
   if (viop_lseek(file->f_dentry->dentry_inode, offset, whence, &(file->offset)) != 0) {
-    //sprint("vfs_lseek: lseek failed!\n");
+    sprint("vfs_lseek: lseek failed!\n");
     return -1;
   }
 
@@ -290,12 +290,12 @@ int vfs_link(const char *oldpath, const char *newpath) {
   struct dentry *old_file_dentry =
       parse_final_dentry(oldpath, &parent, miss_name);
   if (!old_file_dentry) {
-    //sprint("vfs_link: cannot find the file!\n");
+    sprint("vfs_link: cannot find the file!\n");
     return -1;
   }
 
   if (old_file_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_link: cannot link a directory!\n");
+    sprint("vfs_link: cannot link a directory!\n");
     return -1;
   }
 
@@ -305,14 +305,14 @@ int vfs_link(const char *oldpath, const char *newpath) {
   struct dentry *new_file_dentry =
       parse_final_dentry(newpath, &parent, miss_name);
   if (new_file_dentry) {
-    //sprint("vfs_link: the new file already exists!\n");
+    sprint("vfs_link: the new file already exists!\n");
     return -1;
   }
 
   char basename[MAX_PATH_LEN];
   get_base_name(newpath, basename);
   if (strcmp(miss_name, basename) != 0) {
-    //sprint("vfs_link: cannot create file in a non-exist directory!\n");
+    sprint("vfs_link: cannot create file in a non-exist directory!\n");
     return -1;
   }
 
@@ -339,17 +339,17 @@ int vfs_unlink(const char *path) {
   // lookup the file, find its parent direntry
   struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
   if (!file_dentry) {
-    //sprint("vfs_unlink: cannot find the file!\n");
+    sprint("vfs_unlink: cannot find the file!\n");
     return -1;
   }
 
   if (file_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_unlink: cannot unlink a directory!\n");
+    sprint("vfs_unlink: cannot unlink a directory!\n");
     return -1;
   }
 
   if (file_dentry->d_ref > 0) {
-    //sprint("vfs_unlink: the file is still opened!\n");
+    sprint("vfs_unlink: the file is still opened!\n");
     return -1;
   }
 
@@ -382,7 +382,7 @@ int vfs_unlink(const char *path) {
 //
 int vfs_close(struct file *file) {
   if (file->f_dentry->dentry_inode->type != FILE_I) {
-    //sprint("vfs_close: cannot close a directory!\n");
+    sprint("vfs_close: cannot close a directory!\n");
     return -1;
   }
 
@@ -393,7 +393,7 @@ int vfs_close(struct file *file) {
   // hostfs needs to conduct actual file close.
   if (inode->i_ops->viop_hook_close) {
     if (inode->i_ops->viop_hook_close(inode, dentry) != 0) {
-      //sprint("vfs_close: hook_close failed!\n");
+      sprint("vfs_close: hook_close failed!\n");
     }
   }
 
@@ -429,7 +429,7 @@ struct file *vfs_opendir(const char *path) {
   struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
 
   if (!file_dentry || file_dentry->dentry_inode->type != DIR_I) {
-    //sprint("vfs_opendir: cannot find the direntry!\n");
+    sprint("vfs_opendir: cannot find the direntry!\n");
     return NULL;
   }
 
@@ -441,7 +441,7 @@ struct file *vfs_opendir(const char *path) {
   if (file_dentry->dentry_inode->i_ops->viop_hook_opendir) {
     if (file_dentry->dentry_inode->i_ops->
         viop_hook_opendir(file_dentry->dentry_inode, file_dentry) != 0) {
-      //sprint("vfs_opendir: hook opendir failed!\n");
+      sprint("vfs_opendir: hook opendir failed!\n");
     }
   }
 
@@ -454,7 +454,7 @@ struct file *vfs_opendir(const char *path) {
 //
 int vfs_readdir(struct file *file, struct dir *dir) {
   if (file->f_dentry->dentry_inode->type != DIR_I) {
-    //sprint("vfs_readdir: cannot read a file!\n");
+    sprint("vfs_readdir: cannot read a file!\n");
     return -1;
   }
   return viop_readdir(file->f_dentry->dentry_inode, dir, &(file->offset));
@@ -472,14 +472,14 @@ int vfs_mkdir(const char *path) {
   // lookup the dir, find its parent direntry
   struct dentry *file_dentry = parse_final_dentry(path, &parent, miss_name);
   if (file_dentry) {
-    //sprint("vfs_mkdir: the directory already exists!\n");
+    sprint("vfs_mkdir: the directory already exists!\n");
     return -1;
   }
 
   char basename[MAX_PATH_LEN];
   get_base_name(path, basename);
   if (strcmp(miss_name, basename) != 0) {
-    //sprint("vfs_mkdir: cannot create directory in a non-exist directory!\n");
+    sprint("vfs_mkdir: cannot create directory in a non-exist directory!\n");
     return -1;
   }
 
@@ -488,7 +488,7 @@ int vfs_mkdir(const char *path) {
   struct vinode *new_dir_inode = viop_mkdir(parent->dentry_inode, new_dentry);
   if (!new_dir_inode) {
     free_page(new_dentry);
-    //sprint("vfs_mkdir: cannot create directory!\n");
+    sprint("vfs_mkdir: cannot create directory!\n");
     return -1;
   }
 
@@ -504,7 +504,7 @@ int vfs_mkdir(const char *path) {
 //
 int vfs_closedir(struct file *file) {
   if (file->f_dentry->dentry_inode->type != DIR_I) {
-    //sprint("vfs_closedir: cannot close a file!\n");
+    sprint("vfs_closedir: cannot close a file!\n");
     return -1;
   }
 
@@ -519,7 +519,7 @@ int vfs_closedir(struct file *file) {
   if (file->f_dentry->dentry_inode->i_ops->viop_hook_closedir) {
     if (file->f_dentry->dentry_inode->i_ops->
         viop_hook_closedir(file->f_dentry->dentry_inode, file->f_dentry) != 0) {
-      //sprint("vfs_closedir: hook closedir failed!\n");
+      sprint("vfs_closedir: hook closedir failed!\n");
     }
   }
   return 0;
@@ -640,7 +640,7 @@ struct dentry *alloc_vfs_dentry(const char *name, struct vinode *inode,
 //
 int free_vfs_dentry(struct dentry *dentry) {
   if (dentry->d_ref > 0) {
-    //sprint("free_vfs_dentry: dentry is still in use!\n");
+    sprint("free_vfs_dentry: dentry is still in use!\n");
     return -1;
   }
   free_page((void *)dentry);

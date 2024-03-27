@@ -138,7 +138,7 @@ int hostfs_update_vinode(struct vinode *vinode) {
   } else if (S_ISREG(stat.st_mode)) {
     vinode->type = H_FILE;
   } else {
-    //sprint("hostfs_lookup:unknown file type!");
+    sprint("hostfs_lookup:unknown file type!");
     return -1;
   }
 
@@ -153,7 +153,7 @@ ssize_t hostfs_read(struct vinode *f_inode, char *r_buf, ssize_t len,
                     int *offset) {
   spike_file_t *pf = (spike_file_t *)f_inode->i_fs_info;
   if (pf < 0) {
-    //sprint("hostfs_read: invalid file handle!\n");
+    sprint("hostfs_read: invalid file handle!\n");
     return -1;
   }
   int read_len = spike_file_read(pf, r_buf, len);
@@ -169,7 +169,7 @@ ssize_t hostfs_write(struct vinode *f_inode, const char *w_buf, ssize_t len,
                      int *offset) {
   spike_file_t *pf = (spike_file_t *)f_inode->i_fs_info;
   if (pf < 0) {
-    //sprint("hostfs_write: invalid file handle!\n");
+    sprint("hostfs_write: invalid file handle!\n");
     return -1;
   }
   int write_len = spike_file_write(pf, w_buf, len);
@@ -205,7 +205,7 @@ struct vinode *hostfs_create(struct vinode *parent, struct dentry *sub_dentry) {
 
   spike_file_t *f = spike_file_open(path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
   if ((int64)f < 0) {
-    //sprint("hostfs_create cannot create the given file.\n");
+    sprint("hostfs_create cannot create the given file.\n");
     return NULL;
   }
 
@@ -225,7 +225,7 @@ int hostfs_lseek(struct vinode *f_inode, ssize_t new_offset, int whence,
                   int *offset) {
   spike_file_t *f = (spike_file_t *)f_inode->i_fs_info;
   if (f < 0) {
-    //sprint("hostfs_lseek: invalid file handle!\n");
+    sprint("hostfs_lseek: invalid file handle!\n");
     return -1;
   }
 
@@ -267,7 +267,7 @@ int hostfs_hook_open(struct vinode *f_inode, struct dentry *f_dentry) {
   get_path_string(path, f_dentry);
   spike_file_t *f = spike_file_open(path, O_RDWR, 0);
   if ((int64)f < 0) {
-    //sprint("hostfs_hook_open cannot open the given file.\n");
+    sprint("hostfs_hook_open cannot open the given file.\n");
     return -1;
   }
 

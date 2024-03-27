@@ -10,6 +10,7 @@
 #include "util/snprintf.h"
 #include "spike_utils.h"
 #include "spike_file.h"
+#define verbose
 
 //=============    encapsulating htif syscalls, invoking Spike functions    =============
 long frontend_syscall(long n, uint64 a0, uint64 a1, uint64 a2, uint64 a3, uint64 a4,
@@ -71,6 +72,17 @@ void vprintm(const char* s, va_list vl) {
 }
 
 void sprint(const char* s, ...) {
+  #ifndef verbose
+  va_list vl;
+  va_start(vl, s);
+
+  vprintk(s, vl);
+
+  va_end(vl);
+  #endif
+}
+
+void ssprint(const char* s, ...) {
   va_list vl;
   va_start(vl, s);
 
@@ -82,7 +94,7 @@ void sprint(const char* s, ...) {
 //===============    Spike-assisted termination, panic and assert    ===============
 void poweroff(uint16_t code) {
   assert(htif);
-  //sprint("Power off\r\n");
+  sprint("Power off\r\n");
   if (htif) {
     htif_poweroff();
   } else {
@@ -95,7 +107,7 @@ void poweroff(uint16_t code) {
 }
 
 void shutdown(int code) {
-  //sprint("System is shutting down with exit code %d.\n", code);
+  sprint("System is shutting down with exit code %d.\n", code);
   frontend_syscall(HTIFSYS_exit, code, 0, 0, 0, 0, 0, 0);
   while (1)
     ;
@@ -105,7 +117,7 @@ void do_panic(const char* s, ...) {
   va_list vl;
   va_start(vl, s);
 
-  sprint(s, vl);
+  ssprint(s, vl);
   if(current == shell_process) {
     shutdown(-1);
   } else {
@@ -118,6 +130,6 @@ void do_panic(const char* s, ...) {
 void kassert_fail(const char* s) {
   register uintptr_t ra asm("ra");
   do_panic("assertion failed @ %p: %s\n", ra, s);
-  //    //sprint("assertion failed @ %p: %s\n", ra, s);
+  //    sprint("assertion failed @ %p: %s\n", ra, s);
   shutdown(-1);
 }

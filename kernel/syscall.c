@@ -29,7 +29,11 @@ ssize_t sys_user_print(const char* buf, size_t n) {
   // so we have to transfer it into phisical address (kernel is running in direct mapping).
   assert( current );
   char* pa = (char*)user_va_to_pa((pagetable_t)(current->pagetable), (void*)buf);
-  sprint(pa);
+  if(current->redirect_file != NULL) {
+    vfs_write(current->redirect_file, pa, strlen(pa));
+  } else {
+    ssprint(pa);
+  }
   return 0;
 }
 
@@ -37,7 +41,7 @@ ssize_t sys_user_print(const char* buf, size_t n) {
 // implement the SYS_user_exit syscall
 //
 ssize_t sys_user_exit(uint64 code) {
-  //sprint("User exit with code:%d.\n", code);
+  sprint("User exit with code:%d.\n", code);
   // reclaim the current process, and reschedule. added @lab3_1
   free_process( current );
   // added @lab3_challenge_1
@@ -64,10 +68,10 @@ uint64 sys_user_allocate_page(uint64 nb) {
       md = md->next;
     }
     if(NULL == md) { // no last md available, need to allocate new page
-      // //sprint("new page\n");
+      // sprint("new page\n");
       void* pa = alloc_page();
       va = current->user_free_va;
-      // //sprint("new page alloc pa = 0x%lx, va = 0x%lx\n", (uint64)pa, va);
+      // sprint("new page alloc pa = 0x%lx, va = 0x%lx\n", (uint64)pa, va);
       current->user_free_va += PGSIZE;
       user_vm_map((pagetable_t)current->pagetable, va, PGSIZE, (uint64)pa,
           prot_to_type(PROT_WRITE | PROT_READ, 1));
@@ -105,7 +109,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
       nb -= md->size;
       va = md->page_start_va + md->start_pa - md->page_start_pa;
       current->page_cb[get_page_id_by_start_pa(md->page_start_pa)].allocated_md_num++;
-      // //sprint("last md alloc pa = 0x%lx, va = 0x%lx\n", md->start_pa, va);
+      // sprint("last md alloc pa = 0x%lx, va = 0x%lx\n", md->start_pa, va);
 
       // allocate a new page
       void *pa = alloc_page();
@@ -126,7 +130,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
           allocated_md->succ = NULL;
           // do not insert allocated_md into allocated list
           md->succ = allocated_md; // record the succ of md
-          // //sprint("new page with last md alloc pa = 0x%lx, va = 0x%lx\n", allocated_md->start_pa, allocated_md->page_start_va);
+          // sprint("new page with last md alloc pa = 0x%lx, va = 0x%lx\n", allocated_md->start_pa, allocated_md->page_start_va);
           current->page_cb[i].allocated_md_num = 1;
           if(nb < PGSIZE) {
             memory_descriptor *free_md = alloc_memory_descriptor();
@@ -142,7 +146,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
       current->user_free_va += PGSIZE;
     }
   } else {
-    // //sprint("existing page\n");
+    // sprint("existing page\n");
     uint64 allocated_start_pa;
     for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
       if(current->page_cb[i].valid && current->page_cb[i].start_pa == md->page_start_pa) {
@@ -150,7 +154,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
         break;
       }
     }
-    // //sprint("existing md pa = 0x%lx, va = 0x%lx\n", md->start_pa, md->page_start_va + md->start_pa - md->page_start_pa);
+    // sprint("existing md pa = 0x%lx, va = 0x%lx\n", md->start_pa, md->page_start_va + md->start_pa - md->page_start_pa);
     if(md->size == nb) { // exactly the same size
       remove_from_md_list(&(current->free_md_list_head), md);
       insert_into_md_list(&(current->allocated_md_list_head), md, 0);
@@ -171,7 +175,7 @@ uint64 sys_user_allocate_page(uint64 nb) {
       va = allocated_md->start_pa - allocated_md->page_start_pa + allocated_md->page_start_va;
     }
   }
-  // //sprint("va = 0x%lx\n", va);
+  // sprint("va = 0x%lx\n", va);
   return va;
 }
 
@@ -180,7 +184,7 @@ void free_single_md(memory_descriptor *md) {
   remove_from_md_list(&(current->allocated_md_list_head), md);
   insert_into_md_list(&(current->free_md_list_head), md, 1);
   if(0 == --current->page_cb[page_id].allocated_md_num) { // free the whole page
-    // //sprint("free whole page pa = 0x%lx\n", current->page_cb[page_id].start_pa);
+    // sprint("free whole page pa = 0x%lx\n", current->page_cb[page_id].start_pa);
     md = current->free_md_list_head;
     while(NULL != md && md->page_start_pa != current->page_cb[page_id].start_pa) {
       md = md->next;
@@ -216,7 +220,7 @@ uint64 sys_user_free_page(uint64 va) {
 // kerenl entry point of naive_fork
 //
 ssize_t sys_user_fork() {
-  //sprint("User call fork.\n");
+  sprint("User call fork.\n");
   return do_fork( current );
 }
 
@@ -382,31 +386,57 @@ ssize_t sys_user_exec(char *path, char *param) {
     substitute_bincode_from_vfs_elf(current, try_with_shell_path, param_pa);
   }
 
-  // //sprint("pa for code exec before = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
-
-  
-  // write exec parameter
-  char **argv_va = (char **)sys_user_allocate_page(PGSIZE);
-  char *argv_0_va = (char *)sys_user_allocate_page(PGSIZE);
-
-  char **argv_pa = user_va_to_pa(current->pagetable, (void *)argv_va);
-  // argv[0] stores the va of parameter string
-  argv_pa[0] = argv_0_va;
-
-  char *argv_0_pa = (char *)user_va_to_pa(current->pagetable, (void *)argv_0_va);
-  // cannot use param_pa, because the original data segment has been substituted
-  strcpy(argv_0_pa, param_new);
-  // //sprint("pa for code exec after = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
-  free_page((void *)param_new);
-  free_page(try_with_shell_path);
-  free_page(missing_name);
-  current->trapframe->regs.a0 = 1;
-  current->trapframe->regs.a1 = (uint64)argv_va;
 
   // inherits the work space
   if(current->parent != NULL) {
     current->pfiles->cwd = current->parent->pfiles->cwd;
   }
+
+  // sprint("pa for code exec before = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
+
+  int argc = 0;
+
+  // write exec parameter
+  char **argv_va = (char **)sys_user_allocate_page(PGSIZE);
+  // argv[0] stores the va of parameter string
+  char **argv_pa = user_va_to_pa(current->pagetable, (void *)argv_va);
+  // cannot use param_pa, because the original data segment has been substituted
+  if(strcmp("", param_new) == 0) {
+    char *argv_i_va = (char *)sys_user_allocate_page(PGSIZE);
+    argv_pa[argc++] = argv_i_va;
+    char *argv_i_pa = user_va_to_pa(current->pagetable, (void *)argv_i_va);
+    strcpy(argv_i_pa, "");
+  } else {
+    char *token = strtok(param_new, " ");
+    while(NULL != token) {
+      if(strcmp(">", token) == 0) {
+        token = strtok(NULL, " ");
+        if(NULL == token) {
+          panic("invalid redirect file name.");
+        }
+        current->redirect_file = vfs_open(token, O_RDWR | O_CREAT);
+        if(current->redirect_file == NULL) {
+          panic("failed to open redirect file.");
+        }
+        // vfs_lseek(current->redirect_file, 0, 0);
+        token = strtok(NULL, " ");
+        continue;
+      }
+      char *argv_i_va = (char *)sys_user_allocate_page(PGSIZE);
+      argv_pa[argc++] = argv_i_va;
+      char *argv_i_pa = user_va_to_pa(current->pagetable, (void *)argv_i_va);
+      strcpy(argv_i_pa, token);
+      token = strtok(NULL, " ");
+    }
+  }
+
+
+  // sprint("pa for code exec after = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
+  free_page((void *)param_new);
+  free_page(try_with_shell_path);
+  free_page(missing_name);
+  current->trapframe->regs.a0 = argc;
+  current->trapframe->regs.a1 = (uint64)argv_va;
   
   return 0;
 }
@@ -481,7 +511,7 @@ ssize_t sys_user_backtrace(long depth) {
   while(depth--) {
     const char *name = get_symbol_name(ctx, *get_raw_ptr(fp - 8)); // 非叶子函数，fp-8为ra的保存值
     fp = *get_raw_ptr(fp - 16); // 非叶子函数，fp-16为fp的保存值
-    //sprint("%s\n", name);
+    sprint("%s\n", name);
     if(0 == strcmp("main", name)) {
       return 0;
     }

@@ -6,12 +6,14 @@
  * switch to the old "current" process after trap handling.
  */
 
+#include "proc_file.h"
 #include "riscv.h"
 #include "strap.h"
 #include "config.h"
 #include "process.h"
 #include "elf.h"
 #include "string.h"
+#include "vfs.h"
 #include "vmm.h"
 #include "pmm.h"
 #include "memlayout.h"
@@ -130,25 +132,21 @@ process* alloc_process() {
     panic( "cannot find any free process structure.\n" );
     return 0;
   }
-  //sprint("i = %d\n", i);
   // init proc[i]'s vm space
   procs[i].trapframe = (trapframe *)alloc_page();  //trapframe, used to save context
-  // memset(procs[i].trapframe, 0, sizeof(trapframe));
+  memset(procs[i].trapframe, 0, sizeof(trapframe));
 
   // page directory
   procs[i].pagetable = (pagetable_t)alloc_page();
-  // memset((void *)procs[i].pagetable, 0, PGSIZE);
+  memset((void *)procs[i].pagetable, 0, PGSIZE);
 
   procs[i].kstack = (uint64)alloc_page() + PGSIZE;   //user kernel stack top
   uint64 user_stack = (uint64)alloc_page();       //phisical address of user stack bottom
   procs[i].trapframe->regs.sp = USER_STACK_TOP;  //virtual address of user stack top
 
   // allocates a page to record memory regions (segments)
-  //sprint("before alloc\n");
   procs[i].mapped_info = (mapped_region*)alloc_page();
-  //sprint("after alloc\n");
-  // memset( procs[i].mapped_info, 0, PGSIZE );
-  //sprint("after memset\n");
+  memset( procs[i].mapped_info, 0, PGSIZE );
 
   // map user stack in userspace
   user_vm_map((pagetable_t)procs[i].pagetable, USER_STACK_TOP - PGSIZE, PGSIZE,
@@ -172,7 +170,7 @@ process* alloc_process() {
   procs[i].mapped_info[SYSTEM_SEGMENT].npages = 1;
   procs[i].mapped_info[SYSTEM_SEGMENT].seg_type = SYSTEM_SEGMENT;
 
-  //sprint("in alloc_proc. user frame 0x%lx, user stack 0x%lx, user kstack 0x%lx \n", procs[i].trapframe, procs[i].trapframe->regs.sp, procs[i].kstack);
+  sprint("in alloc_proc. user frame 0x%lx, user stack 0x%lx, user kstack 0x%lx \n", procs[i].trapframe, procs[i].trapframe->regs.sp, procs[i].kstack);
 
   // initialize the process's heap manager
   procs[i].user_heap.heap_top = USER_FREE_ADDRESS_START;
@@ -188,7 +186,7 @@ process* alloc_process() {
 
   // initialize files_struct
   procs[i].pfiles = init_proc_file_management();
-  //sprint("in alloc_proc. build proc_file_management successfully.\n");
+  sprint("in alloc_proc. build proc_file_management successfully.\n");
 
   // return after initialization.
   return &procs[i];
@@ -203,6 +201,30 @@ int free_process( process* proc ) {
   // but for proxy kernel, it (memory leaking) may NOT be a really serious issue,
   // as it is different from regular OS, which needs to run 7x24.
   proc->status = ZOMBIE;
+  if(proc->redirect_file != NULL) {
+    vfs_close(proc->redirect_file);
+  }
+  
+  // reclaim heap memory
+  for(int i = 0; i < PROC_MAX_PAGE_NUM; i++) {
+    if(proc->page_cb[i].valid) {
+      free_page((void *)proc->page_cb[i].start_pa);
+    }
+  }
+
+  // reclaim memory descriptor
+  memory_descriptor *md = proc->free_md_list_head;
+  while(md != NULL) {
+    memory_descriptor *nxt = md->next;
+    free_memory_descriptor(md);
+    md = nxt;
+  }
+  md = proc->allocated_md_list_head;
+  while(md != NULL) {
+    memory_descriptor *nxt = md->next;
+    free_memory_descriptor(md);
+    md = nxt;
+  }
 
   return 0;
 }
@@ -216,9 +238,9 @@ int free_process( process* proc ) {
 //
 int do_fork( process* parent)
 {
-  //sprint( "will fork a child from parent %d.\n", parent->pid );
+  sprint( "will fork a child from parent %d.\n", parent->pid );
   process* child = alloc_process();
-  //sprint("after alloc process\n");
+  sprint("after alloc process\n");
   child->user_free_va = parent->user_free_va;
   for( int i=0; i<parent->total_mapped_region; i++ ){
     // browse parent's vm space, and copy its trapframe and data segments,
@@ -277,7 +299,7 @@ int do_fork( process* parent)
         // DO NOT COPY THE PHYSICAL PAGES, JUST MAP THEM.
         user_vm_map(child->pagetable, parent->mapped_info[i].va, parent->mapped_info[i].npages * PGSIZE, 
           lookup_pa(parent->pagetable, parent->mapped_info[i].va), prot_to_type(PROT_EXEC | PROT_READ, 1));
-        //sprint("do_fork map code segment at pa:%lx of parent to child at va:%lx.\n", lookup_pa(parent->pagetable, parent->mapped_info[i].va), parent->mapped_info[i].va);
+        sprint("do_fork map code segment at pa:%lx of parent to child at va:%lx.\n", lookup_pa(parent->pagetable, parent->mapped_info[i].va), parent->mapped_info[i].va);
 
         // after mapping, register the vm region (do not delete codes below!)
         child->mapped_info[child->total_mapped_region].va = parent->mapped_info[i].va;

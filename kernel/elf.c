@@ -112,10 +112,10 @@ elf_status elf_load(elf_ctx *ctx) {
     // SEGMENT_READABLE, SEGMENT_EXECUTABLE, SEGMENT_WRITABLE are defined in kernel/elf.h
     if( ph_addr.flags == (SEGMENT_READABLE|SEGMENT_EXECUTABLE) ){
       ((process*)(((elf_info*)(ctx->info))->p))->mapped_info[j].seg_type = CODE_SEGMENT;
-      //sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
+      sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
     }else if ( ph_addr.flags == (SEGMENT_READABLE|SEGMENT_WRITABLE) ){
       ((process*)(((elf_info*)(ctx->info))->p))->mapped_info[j].seg_type = DATA_SEGMENT;
-      //sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
+      sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
     }else
       panic( "unknown program segment encountered, segment flag:%d.\n", ph_addr.flags );
 
@@ -129,11 +129,11 @@ elf_status elf_load(elf_ctx *ctx) {
 // load the elf of user application, by using the spike file interface.
 //
 void load_bincode_from_host_elf(process *p, char *filename) {
-  //sprint("Application: %s\n", filename);
+  sprint("Application: %s\n", filename);
 
   if(shell_process == NULL) {
     shell_process = p;
-    //sprint("set shell process\n");
+    sprint("set shell process\n");
   }
 
   //elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
@@ -162,7 +162,7 @@ void load_bincode_from_host_elf(process *p, char *filename) {
   // do not close the vfs file, for backtrace
   // vfs_close( info.f );
 
-  //sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
+  sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
 }
 
 void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
@@ -186,7 +186,7 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
     if( ph_addr.flags == (SEGMENT_READABLE|SEGMENT_EXECUTABLE) ){ // code segment
       for(int j = 0; j < PGSIZE/sizeof(mapped_region); j++) {
         if(p->mapped_info[j].seg_type == CODE_SEGMENT) {
-          //sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
+          sprint( "CODE_SEGMENT added at mapped info offset:%d\n", j );
           // do NOT free the original page, father process needs code segment
           user_vm_unmap(p->pagetable, p->mapped_info[j].va, PGSIZE, 0); 
           // alloc new page
@@ -205,7 +205,7 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
       int found = 0; // maybe there's no existing data segment
       for(int j = 0; j < PGSIZE/sizeof(mapped_region); j++) {
         if(p->mapped_info[j].seg_type == DATA_SEGMENT) {
-          //sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
+          sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
           // free the original page
           user_vm_unmap(p->pagetable, p->mapped_info[j].va, PGSIZE, 1); 
           // alloc new page
@@ -232,7 +232,7 @@ void elf_substitute(process *p, elf_ctx *ctx, struct file *elf_file) {
         }
         for(int j = 0; j < PGSIZE / sizeof(mapped_region); j++) {
           if(p->mapped_info[j].va == 0) {
-            //sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
+            sprint( "DATA_SEGMENT added at mapped info offset:%d\n", j );
             p->mapped_info[j].npages = 1;
             p->mapped_info[j].va = ph_addr.vaddr;
             p->mapped_info[j].seg_type = DATA_SEGMENT;
@@ -290,7 +290,7 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   if(info.f == NULL) {
     panic("failed to open file.");
   }
-  //sprint("Application: %s\n", path); 
+  sprint("Application: %s\n", path); 
   struct file *elf_file = info.f;
   // read the elf header
   uint64 bytes_read = vfs_read(elf_file, (char *)&ctx->ehdr, sizeof(ctx->ehdr));
@@ -311,7 +311,7 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   vfs_close(elf_file);
   elf_for_pid[p->pid] = elfloader;
   elf_for_pid[p->pid].info = &elf_info_for_pid[p->pid];
-  //sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
+  sprint("Application program entry point (virtual address): 0x%lx\n", p->trapframe->epc);
 }
 
 elf_ctx *get_elf() {
@@ -544,7 +544,7 @@ void read_runtime_error_source_code() {
   const char *file_name = p->file[p->line[line_idx].file].file;
   const char *dir_name = p->dir[p->file[p->line[line_idx].file].dir];
 
-  //sprint("Runtime error at %s/%s:%d\n", dir_name, file_name, p->line[line_idx].line);
+  sprint("Runtime error at %s/%s:%d\n", dir_name, file_name, p->line[line_idx].line);
   char *path = alloc_page();
   int path_len = 0;
   for(int i = 0; i < strlen(dir_name); i++) {
@@ -578,7 +578,7 @@ void read_runtime_error_source_code() {
     line_content[line_len++] = c;
   }
   line_content[line_len] = '\0';
-  //sprint("%s\n", line_content);
+  sprint("%s\n", line_content);
 
   spike_file_close(file);
   free_page(path);

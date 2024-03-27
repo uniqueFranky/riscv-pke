@@ -28,7 +28,7 @@ void shutdown(int) __attribute__((noreturn));
 void do_panic(const char* s, ...);
 void mpanic(const char *s);
 void kassert_fail(const char* s) __attribute__((noreturn));
-
+void ssprint(const char* s, ...);
 //void shutdown(int code);
 
 #define panic(s, ...)                \

@@ -40,7 +40,7 @@ static uint64 g_ticks = 0;
 // added @lab1_3
 //
 void handle_mtimer_trap() {
-  //sprint("Ticks %d\n", g_ticks);
+  sprint("Ticks %d\n", g_ticks);
   // TODO (lab1_3): increase g_ticks to record this "tick", and then clear the "SIP"
   // field in sip register.
   // hint: use write_csr to disable the SIP_SSIP bit in sip.
@@ -55,7 +55,7 @@ void handle_mtimer_trap() {
 // stval: the virtual address that causes pagefault when being accessed.
 //
 void handle_user_page_fault(uint64 mcause, uint64 sepc, uint64 stval) {
-  //sprint("handle_page_fault: %lx\n", stval);
+  sprint("handle_page_fault: %lx\n", stval);
   switch (mcause) {
     case CAUSE_STORE_PAGE_FAULT: {
       // TODO (lab2_3): implement the operations that solve the page fault to
@@ -74,7 +74,7 @@ void handle_user_page_fault(uint64 mcause, uint64 sepc, uint64 stval) {
     }
 
     default:
-      //sprint("unknown page fault.\n");
+      sprint("unknown page fault.\n");
       break;
   }
 }
@@ -103,7 +103,7 @@ void rrsched() {
 void smode_trap_handler(void) {
   // make sure we are in User mode before entering the trap handling.
   // we will consider other previous case in lab1_3 (interrupt).
-  if ((read_csr(sstatus) & SSTATUS_SPP) != 0) //sprint("usertrap: not from user mode\n");
+  if ((read_csr(sstatus) & SSTATUS_SPP) != 0) sprint("usertrap: not from user mode\n");
 
   assert(current);
   // save user process counter.
@@ -113,7 +113,6 @@ void smode_trap_handler(void) {
   // read_csr() and CAUSE_USER_ECALL are macros defined in kernel/riscv.h
   uint64 cause = read_csr(scause);
   // use switch-case instead of if-else, as there are many cases since lab2_3.
-  //sprint("cause=%d\n", cause);
   switch (cause) {
     case CAUSE_USER_ECALL:
       handle_syscall(current->trapframe);
@@ -130,13 +129,13 @@ void smode_trap_handler(void) {
       handle_user_page_fault(cause, read_csr(sepc), read_csr(stval));
       break;
     default:
-      //sprint("smode_trap_handler(): unexpected scause %p\n", read_csr(scause));
-      //sprint("            sepc=%p stval=%p\n", read_csr(sepc), read_csr(stval));
+      sprint("smode_trap_handler(): unexpected scause %p\n", read_csr(scause));
+      sprint("            sepc=%p stval=%p\n", read_csr(sepc), read_csr(stval));
       panic( "unexpected exception happened.\n" );
       break;
   }
 
   // continue (come back to) the execution of current process.
-  // //sprint("pa for code segment in smode handler = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
+  // sprint("pa for code segment in smode handler = 0x%lx\n", user_va_to_pa(current->pagetable, (void *)(0x0000000000010000)));
   switch_to(current);
 }

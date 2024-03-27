@@ -11,7 +11,7 @@ void mpanic(const char *s) {
   if(current == shell_process) {
     shutdown(-1);
   }
-  sprint("%s\n", s);
+  ssprint("%s\n", s);
   // set the previous mode to supervisor
   write_csr(mstatus, ((read_csr(mstatus) & ~MSTATUS_MPP_MASK) | MSTATUS_MPP_S));
   write_csr(mstatus, 0xa00000808L);
@@ -89,8 +89,8 @@ void handle_mtrap() {
       break;
 
     default:
-      //sprint("machine trap(): unexpected mscause %p\n", mcause);
-      //sprint("            mepc=%p mtval=%p\n", read_csr(mepc), read_csr(mtval));
+      sprint("machine trap(): unexpected mscause %p\n", mcause);
+      sprint("            mepc=%p mtval=%p\n", read_csr(mepc), read_csr(mtval));
       mpanic( "unexpected exception happened in M-mode.\n" );
       break;
   }

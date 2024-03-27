@@ -130,6 +130,9 @@ typedef struct process_t {
   // for error line
   char *debugline; char **dir; code_file *file; addr_line *line; int line_ind;
 
+  // for stdout redirect
+  struct file *redirect_file;
+
 }process;
 
 extern semaphore *sem_array[PROC_MAX_SEM_NUM];

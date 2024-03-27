@@ -46,7 +46,7 @@ proc_file_management *init_proc_file_management(void) {
   for (int fd = 0; fd < MAX_FILES; ++fd)
     pfiles->opened_files[fd].status = FD_NONE;
 
-  //sprint("FS: created a file management struct for a process.\n");
+  sprint("FS: created a file management struct for a process.\n");
   return pfiles;
 }
 
@@ -120,7 +120,7 @@ int do_read(int fd, char *buf, uint64 count) {
 // write content ("buf") whose length is "count" to a file "fd".
 // return: actual length of data written to the file.
 //
-int do_write(int fd, char *buf, uint64 count) {
+int do_write(int fd, const char *buf, uint64 count) {
   struct file *pfile = get_opened_file(fd);
 
   if (pfile->writable == 0) panic("do_write: cannot write file!\n");

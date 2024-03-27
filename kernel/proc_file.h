@@ -10,7 +10,7 @@
 //
 int do_open(char *pathname, int flags);
 int do_read(int fd, char *buf, uint64 count);
-int do_write(int fd, char *buf, uint64 count);
+int do_write(int fd, const char *buf, uint64 count);
 int do_lseek(int fd, int offset, int whence);
 int do_stat(int fd, struct istat *istat);
 int do_disk_stat(int fd, struct istat *istat);

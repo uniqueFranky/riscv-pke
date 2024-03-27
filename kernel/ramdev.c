@@ -102,6 +102,6 @@ struct device *init_rfs_device(const char *dev_name) {
     }
   }
 
-  //sprint("%s: base address of %s is: %p\n",dev_name, dev_name, ramdisk_addr);
+  sprint("%s: base address of %s is: %p\n",dev_name, dev_name, ramdisk_addr);
   return device;
 }

@@ -4,19 +4,8 @@
 
 int main(int argc, char *argv[]) {
   int fd;
-  char str[] = "hello world";
-  char *filename = argv[0];
-  // printu("\n======== echo command ========\n");
-  // printu("echo: %s\n", filename);
-
-  fd = open(filename, O_RDWR | O_CREAT);
-  // printu("file descriptor fd: %d\n", fd);
-  if(fd < 0) {
-    printu("failed to open file: %s\n", filename);
-  }
-  write_u(fd, str, strlen(str));
-  // printu("write content: \n%s\n", str);
-  close(fd);
+  char *str = argv[0];
+  printu("%s\n", str);
   exit(0);
   return 0;
 }
