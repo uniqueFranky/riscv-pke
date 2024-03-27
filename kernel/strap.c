@@ -103,7 +103,7 @@ void rrsched() {
 void smode_trap_handler(void) {
   // make sure we are in User mode before entering the trap handling.
   // we will consider other previous case in lab1_3 (interrupt).
-  if ((read_csr(sstatus) & SSTATUS_SPP) != 0) panic("usertrap: not from user mode");
+  if ((read_csr(sstatus) & SSTATUS_SPP) != 0) //sprint("usertrap: not from user mode\n");
 
   assert(current);
   // save user process counter.
@@ -113,6 +113,7 @@ void smode_trap_handler(void) {
   // read_csr() and CAUSE_USER_ECALL are macros defined in kernel/riscv.h
   uint64 cause = read_csr(scause);
   // use switch-case instead of if-else, as there are many cases since lab2_3.
+  //sprint("cause=%d\n", cause);
   switch (cause) {
     case CAUSE_USER_ECALL:
       handle_syscall(current->trapframe);

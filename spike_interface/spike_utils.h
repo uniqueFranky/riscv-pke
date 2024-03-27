@@ -5,6 +5,7 @@
 #include "spike_file.h"
 #include "spike_memory.h"
 #include "spike_htif.h"
+#include "kernel/process.h"
 
 long frontend_syscall(long n, uint64 a0, uint64 a1, uint64 a2, uint64 a3, uint64 a4, uint64 a5,
                       uint64 a6);
@@ -24,7 +25,8 @@ void shutdown(int) __attribute__((noreturn));
     poweroff(-1);                                                  \
   })
 
-void do_panic(const char* s, ...) __attribute__((noreturn));
+void do_panic(const char* s, ...);
+void mpanic(const char *s);
 void kassert_fail(const char* s) __attribute__((noreturn));
 
 //void shutdown(int code);

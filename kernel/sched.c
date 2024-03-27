@@ -140,8 +140,7 @@ void schedule() {
     for( int i=0; i<NPROC; i++ )
       if( (procs[i].status != FREE) && (procs[i].status != ZOMBIE) ){
         should_shutdown = 0;
-        //sprint( "ready queue empty, but process %d is not in free/zombie state:%d\n", 
-          // i, procs[i].status );
+        //sprint( "ready queue empty, but process %d is not in free/zombie state:%d\n", i, procs[i].status );
       }
 
     if( should_shutdown ){

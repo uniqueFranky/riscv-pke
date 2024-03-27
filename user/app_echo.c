@@ -11,9 +11,11 @@ int main(int argc, char *argv[]) {
 
   fd = open(filename, O_RDWR | O_CREAT);
   // printu("file descriptor fd: %d\n", fd);
-
+  if(fd < 0) {
+    printu("failed to open file: %s\n", filename);
+  }
   write_u(fd, str, strlen(str));
-  printu("write content: \n%s\n", str);
+  // printu("write content: \n%s\n", str);
   close(fd);
   exit(0);
   return 0;

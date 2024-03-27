@@ -131,6 +131,11 @@ elf_status elf_load(elf_ctx *ctx) {
 void load_bincode_from_host_elf(process *p, char *filename) {
   //sprint("Application: %s\n", filename);
 
+  if(shell_process == NULL) {
+    shell_process = p;
+    //sprint("set shell process\n");
+  }
+
   //elf loading. elf_ctx is defined in kernel/elf.h, used to track the loading process.
   elf_ctx elfloader;
   // elf_info is defined above, used to tie the elf file and its corresponding process.
@@ -282,6 +287,9 @@ void substitute_bincode_from_vfs_elf(process *p, const char *path, const char *p
   info.f = vfs_open(path, O_RDONLY);
   info.p = p;
   elf_info_for_pid[p->pid] = info;
+  if(info.f == NULL) {
+    panic("failed to open file.");
+  }
   //sprint("Application: %s\n", path); 
   struct file *elf_file = info.f;
   // read the elf header
@@ -333,6 +341,7 @@ elf_section_header read_elf_section_header_with_name(elf_ctx *ctx, const char *n
     }
   }
   panic("no corresponding section name");
+  return header;
 }
 
 void read_elf_into_buffer(elf_ctx *ctx, void *dst, int offset, int size) {
@@ -369,6 +378,7 @@ const char *get_symbol_name(elf_ctx *ctx, uint64 addr) {
     }
   }
   panic("no such symbol");
+  return NULL;
 }
 
 

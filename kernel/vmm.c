@@ -136,7 +136,6 @@ void kern_vm_init(void) {
          prot_to_type(PROT_READ | PROT_EXEC, 0));
 
   //sprint("KERN_BASE 0x%lx\n", lookup_pa(t_page_dir, KERN_BASE));
-
   // also (direct) map remaining address space, to make them accessable from kernel.
   // this is important when kernel needs to access the memory content of user's app
   // without copying pages between kernel and user spaces.

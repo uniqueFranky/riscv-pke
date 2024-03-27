@@ -20,7 +20,7 @@
 
 //Two functions defined in kernel/usertrap.S
 extern char smode_trap_vector[];
-extern void return_to_user(trapframe *, uint64 satp);
+extern void return_to_user(trapframe *, uint64 satp) __attribute__((noreturn));
 
 // trap_sec_start points to the beginning of S-mode trap segment (i.e., the entry point
 // of S-mode trap vector).
@@ -34,6 +34,7 @@ semaphore *sem_array[PROC_MAX_SEM_NUM];
 
 // current points to the currently running user-mode application.
 process* current = NULL;
+process *shell_process = NULL;
 
 semaphore sem_pool[NSEM];
 semaphore *free_sem_queue_head;
@@ -129,22 +130,25 @@ process* alloc_process() {
     panic( "cannot find any free process structure.\n" );
     return 0;
   }
-
+  //sprint("i = %d\n", i);
   // init proc[i]'s vm space
   procs[i].trapframe = (trapframe *)alloc_page();  //trapframe, used to save context
-  memset(procs[i].trapframe, 0, sizeof(trapframe));
+  // memset(procs[i].trapframe, 0, sizeof(trapframe));
 
   // page directory
   procs[i].pagetable = (pagetable_t)alloc_page();
-  memset((void *)procs[i].pagetable, 0, PGSIZE);
+  // memset((void *)procs[i].pagetable, 0, PGSIZE);
 
   procs[i].kstack = (uint64)alloc_page() + PGSIZE;   //user kernel stack top
   uint64 user_stack = (uint64)alloc_page();       //phisical address of user stack bottom
   procs[i].trapframe->regs.sp = USER_STACK_TOP;  //virtual address of user stack top
 
   // allocates a page to record memory regions (segments)
+  //sprint("before alloc\n");
   procs[i].mapped_info = (mapped_region*)alloc_page();
-  memset( procs[i].mapped_info, 0, PGSIZE );
+  //sprint("after alloc\n");
+  // memset( procs[i].mapped_info, 0, PGSIZE );
+  //sprint("after memset\n");
 
   // map user stack in userspace
   user_vm_map((pagetable_t)procs[i].pagetable, USER_STACK_TOP - PGSIZE, PGSIZE,
@@ -168,8 +172,7 @@ process* alloc_process() {
   procs[i].mapped_info[SYSTEM_SEGMENT].npages = 1;
   procs[i].mapped_info[SYSTEM_SEGMENT].seg_type = SYSTEM_SEGMENT;
 
-  //sprint("in alloc_proc. user frame 0x%lx, user stack 0x%lx, user kstack 0x%lx \n",
-    // procs[i].trapframe, procs[i].trapframe->regs.sp, procs[i].kstack);
+  //sprint("in alloc_proc. user frame 0x%lx, user stack 0x%lx, user kstack 0x%lx \n", procs[i].trapframe, procs[i].trapframe->regs.sp, procs[i].kstack);
 
   // initialize the process's heap manager
   procs[i].user_heap.heap_top = USER_FREE_ADDRESS_START;
@@ -215,6 +218,7 @@ int do_fork( process* parent)
 {
   //sprint( "will fork a child from parent %d.\n", parent->pid );
   process* child = alloc_process();
+  //sprint("after alloc process\n");
   child->user_free_va = parent->user_free_va;
   for( int i=0; i<parent->total_mapped_region; i++ ){
     // browse parent's vm space, and copy its trapframe and data segments,

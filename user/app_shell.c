@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
     } else {
       strcpy(param, "");
     }
-
+    if(strcmp("", command) == 0) {
+      continue;
+    }
     if(0 == strcmp(command, "cd")) { // syscalls
       change_cwd(param);
     } else { // apps

@@ -137,7 +137,7 @@ extern semaphore *sem_array[PROC_MAX_SEM_NUM];
 void init_sem_pool();
 
 // switch to run user app
-void switch_to(process*);
+void switch_to(process*) __attribute__((noreturn));
 
 // initialize process pool (the procs[] array)
 void init_proc_pool();
@@ -150,5 +150,6 @@ int do_fork(process* parent);
 
 // current running process
 extern process* current;
+extern process *shell_process;
 
 #endif

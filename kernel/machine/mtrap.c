@@ -2,35 +2,51 @@
 #include "kernel/process.h"
 #include "spike_interface/spike_utils.h"
 #include "kernel/elf.h"
+#include "kernel/sched.h"
+#include "kernel/vmm.h"
+#include "util/functions.h"
+
+extern ssize_t sys_user_exit(uint64 code);
+void mpanic(const char *s) {
+  if(current == shell_process) {
+    shutdown(-1);
+  }
+  sprint("%s\n", s);
+  // set the previous mode to supervisor
+  write_csr(mstatus, ((read_csr(mstatus) & ~MSTATUS_MPP_MASK) | MSTATUS_MPP_S));
+  write_csr(mstatus, 0xa00000808L);
+  write_csr(mepc, (uint64)sys_user_exit);
+  asm volatile("mret");
+}
 
 static void handle_instruction_access_fault() { 
   read_runtime_error_source_code();
-  panic("Instruction access fault!"); 
+  mpanic("Instruction access fault!"); 
 }
 
 static void handle_load_access_fault() { 
   read_runtime_error_source_code();
-  panic("Load access fault!"); 
+  mpanic("Load access fault!"); 
 }
 
 static void handle_store_access_fault() { 
   read_runtime_error_source_code();
-  panic("Store/AMO access fault!");
+  mpanic("Store/AMO access fault!");
 }
 
 static void handle_illegal_instruction() { 
   read_runtime_error_source_code();
-  panic("Illegal instruction!"); 
+  mpanic("Illegal instruction!"); 
 }
 
 static void handle_misaligned_load() { 
   read_runtime_error_source_code();
-  panic("Misaligned Load!"); 
+  mpanic("Misaligned Load!"); 
 }
 
 static void handle_misaligned_store() { 
   read_runtime_error_source_code();
-  panic("Misaligned AMO!"); 
+  mpanic("Misaligned AMO!"); 
 }
 
 // added @lab1_3
@@ -75,7 +91,7 @@ void handle_mtrap() {
     default:
       //sprint("machine trap(): unexpected mscause %p\n", mcause);
       //sprint("            mepc=%p mtval=%p\n", read_csr(mepc), read_csr(mtval));
-      panic( "unexpected exception happened in M-mode.\n" );
+      mpanic( "unexpected exception happened in M-mode.\n" );
       break;
   }
 }
